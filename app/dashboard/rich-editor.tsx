@@ -30,6 +30,11 @@ export function RichEditor({ initial, onChange }: { initial: string; onChange: (
   const [start] = useState(() => sanitizeRichText(initial));
   const [active, setActive] = useState<Record<string, boolean>>({});
   const [size, setSize] = useState("3");
+  const [linkOpen, setLinkOpen] = useState(false);
+  const [url, setUrl] = useState("");
+  const [hasExisting, setHasExisting] = useState(false);
+  // Opening the URL box moves focus out of the editor, so remember what was selected.
+  const saved = useRef<Range | null>(null);
 
   useEffect(() => {
     const update = () => {
@@ -41,6 +46,7 @@ export function RichEditor({ initial, onChange }: { initial: string; onChange: (
         underline: document.queryCommandState("underline"),
         ul: document.queryCommandState("insertUnorderedList"),
         ol: document.queryCommandState("insertOrderedList"),
+        link: !!anchorAt(sel.anchorNode),
       });
       const level = document.queryCommandValue("fontSize");
       setSize(level >= "6" ? "6" : level >= "4" ? "5" : level && level < "3" ? "2" : "3");
@@ -57,6 +63,58 @@ export function RichEditor({ initial, onChange }: { initial: string; onChange: (
     onChange(ref.current?.innerHTML ?? "");
   }
 
+  function anchorAt(node: Node | null): HTMLAnchorElement | null {
+    const el = node instanceof Element ? node : node?.parentElement;
+    const a = el?.closest("a") ?? null;
+    return a && ref.current?.contains(a) ? a : null;
+  }
+
+  function openLink() {
+    const sel = getSelection();
+    if (!sel?.rangeCount || !ref.current?.contains(sel.anchorNode)) return;
+    saved.current = sel.getRangeAt(0).cloneRange();
+    const existing = anchorAt(sel.anchorNode);
+    setHasExisting(!!existing);
+    setUrl(existing?.getAttribute("href") ?? "");
+    setLinkOpen(true);
+  }
+
+  function restoreSelection() {
+    ref.current?.focus();
+    const sel = getSelection();
+    if (saved.current && sel) {
+      sel.removeAllRanges();
+      sel.addRange(saved.current);
+    }
+  }
+
+  function applyLink() {
+    let href = url.trim();
+    if (!href) return;
+    // People type "example.com"; make it a real link. Emails and phones get their own scheme.
+    if (!/^[a-z][a-z0-9+.-]*:/i.test(href)) href = /^\S+@\S+\.\S+$/.test(href) ? `mailto:${href}` : `https://${href}`;
+    if (!/^(https?:|mailto:|tel:)/i.test(href)) return;
+    restoreSelection();
+    // Editing an existing link: target the whole link even if only the cursor is inside it.
+    const existing = anchorAt(getSelection()?.anchorNode ?? null);
+    if (existing) getSelection()?.getRangeAt(0).selectNodeContents(existing);
+    document.execCommand("styleWithCSS", false, "false");
+    document.execCommand("createLink", false, href);
+    onChange(ref.current?.innerHTML ?? "");
+    setLinkOpen(false);
+  }
+
+  function removeLink() {
+    restoreSelection();
+    const existing = anchorAt(getSelection()?.anchorNode ?? null);
+    if (existing) getSelection()?.getRangeAt(0).selectNodeContents(existing);
+    document.execCommand("unlink");
+    onChange(ref.current?.innerHTML ?? "");
+    setLinkOpen(false);
+  }
+
+  const canLink = hasExisting || (saved.current !== null && !saved.current.collapsed);
+
   // preventDefault on mousedown keeps the text selection while a toolbar button is clicked.
   const keepSelection = (e: React.MouseEvent) => e.preventDefault();
   const toggle = (on?: boolean) => `${toolButton} ${on ? "bg-gray-900 text-white" : "text-gray-600 hover:bg-gray-200"}`;
@@ -71,6 +129,7 @@ export function RichEditor({ initial, onChange }: { initial: string; onChange: (
         {divider}
         <button type="button" aria-label="Bulleted list" title="Bulleted list" onMouseDown={keepSelection} onClick={() => run("insertUnorderedList")} className={toggle(active.ul)}><Icon name="list" /></button>
         <button type="button" aria-label="Numbered list" title="Numbered list" onMouseDown={keepSelection} onClick={() => run("insertOrderedList")} className={toggle(active.ol)}><Icon name="list-numbers" /></button>
+        <button type="button" aria-label="Link" title="Add link" onMouseDown={keepSelection} onClick={openLink} className={toggle(active.link || linkOpen)}><Icon name="link" /></button>
         {divider}
         {SIZES.map((s) => (
           <button key={s.label} type="button" aria-label={`Text size ${s.name}`} title={`Text size: ${s.name}`} onMouseDown={keepSelection} onClick={() => run("fontSize", s.level)} className={toggle(size === s.level)}>
@@ -93,6 +152,33 @@ export function RichEditor({ initial, onChange }: { initial: string; onChange: (
           ))}
         </div>
       </div>
+      {linkOpen && (
+        <div className="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-white px-3 py-2">
+          <input
+            autoFocus
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault(); // otherwise Enter would submit the whole About form
+                applyLink();
+              }
+              if (e.key === "Escape") setLinkOpen(false);
+            }}
+            placeholder="Paste or type the web address"
+            aria-label="Link address"
+            className="min-w-48 flex-1 rounded-lg border border-gray-200 px-3 py-1.5 text-sm outline-none focus:border-gray-400"
+          />
+          <button type="button" onClick={applyLink} disabled={!url.trim() || !canLink} className="rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-gray-700 disabled:opacity-40">
+            {hasExisting ? "Update" : "Add link"}
+          </button>
+          {hasExisting && (
+            <button type="button" onClick={removeLink} className="rounded-lg px-3 py-1.5 text-sm text-gray-600 transition hover:bg-gray-100 hover:text-red-600">Remove link</button>
+          )}
+          <button type="button" onClick={() => setLinkOpen(false)} className="rounded-lg px-3 py-1.5 text-sm text-gray-500 transition hover:bg-gray-100">Cancel</button>
+          {!canLink && <p className="w-full text-xs text-gray-500">Select the text you want to turn into a link first.</p>}
+        </div>
+      )}
       <div
         ref={ref}
         contentEditable

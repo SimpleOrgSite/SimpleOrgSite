@@ -26,7 +26,7 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/sit
   // The marker lives in the layout so every page proves it was served by us.
   const marker = { [SITE_MARKER]: site.id };
   return (
-    <div className="flex min-h-screen flex-col bg-white text-gray-900" {...marker}>
+    <div className="flex min-h-screen flex-col bg-white text-gray-900" style={{ "--theme-color": site.theme_color } as React.CSSProperties} {...marker}>
       <header
         className={`relative ${dark ? "" : "border-b border-gray-200"}`}
         // Dark: theme color is the background, text is white. Light: white background, text is the theme color.

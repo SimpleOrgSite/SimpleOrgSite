@@ -15,6 +15,9 @@ const KEYWORD_TO_EM: Record<string, string | null> = {
 };
 const FONT_ATTR_TO_EM: Record<string, string | null> = { "1": SIZES.s, "2": SIZES.s, "3": null, "4": SIZES.l, "5": SIZES.l, "6": SIZES.xl, "7": SIZES.xl };
 
+// Only web, mail and phone links survive; javascript:, data: and the like are dropped.
+const SAFE_HREF = /^(https?:\/\/|mailto:|tel:)[^\s"'<>]+$/i;
+
 const COLOR = /^(#[0-9a-f]{3,8}|rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\))$/i;
 
 const SIMPLE: Record<string, string> = { b: "strong", strong: "strong", i: "em", em: "em", u: "u", ul: "ul", ol: "ol", li: "li", p: "p", div: "p" };
@@ -95,6 +98,13 @@ export function sanitizeRichText(html: string): string {
     if (SIMPLE[name]) {
       open = `<${SIMPLE[name]}>${span ?? ""}`;
       close = `${span ? "</span>" : ""}</${SIMPLE[name]}>`;
+    } else if (name === "a") {
+      const href = (attr(rest, "href") ?? "").trim();
+      if (SAFE_HREF.test(href)) {
+        const external = /^https?:/i.test(href);
+        open = `<a href="${href}"${external ? ' target="_blank" rel="noopener noreferrer"' : ""}>${span ?? ""}`;
+        close = `${span ? "</span>" : ""}</a>`;
+      }
     } else if (name === "span" || name === "font") {
       open = span;
       close = span ? "</span>" : "";
