@@ -38,19 +38,31 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/sit
           <nav className="flex items-center gap-8">
             {nav.map((item) => (
               <div key={item.href} className="group relative flex items-center gap-8">
-                <Link href={item.href} className="text-gray-600 hover:text-gray-900">{item.label}</Link>
+                <Link href={item.href} className="flex items-center gap-1 text-gray-600 transition-colors hover:text-gray-900">
+                  {item.label}
+                  {item.children.length > 0 && (
+                    // Tabler "chevron-down"; hints at the dropdown on desktop.
+                    <svg viewBox="0 0 24 24" className="h-4 w-4 stroke-current max-md:hidden" fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                      <path d="M6 9l6 6l6 -6" />
+                    </svg>
+                  )}
+                </Link>
                 {/* Phones have no hover, so sub-pages sit inline there and drop down from md up. */}
                 {item.children.map((c) => (
                   <Link key={c.href} href={c.href} className="text-gray-600 hover:text-gray-900 md:hidden">{c.label}</Link>
                 ))}
                 {item.children.length > 0 && (
-                  <ul className="absolute right-0 top-full z-10 hidden min-w-40 rounded-md border border-gray-200 bg-white py-2 shadow-sm md:group-hover:block md:group-focus-within:block">
-                    {item.children.map((c) => (
-                      <li key={c.href}>
-                        <Link href={c.href} className="block px-4 py-1.5 text-gray-600 hover:bg-gray-50 hover:text-gray-900">{c.label}</Link>
-                      </li>
-                    ))}
-                  </ul>
+                  // The outer box is padded (not margined) so the pointer never crosses a gap that would close the menu.
+                  // -left offset = panel padding + item padding, so item text lines up with the trigger text.
+                  <div className="invisible absolute -left-[1.125rem] top-full z-10 translate-y-1 pt-3 opacity-0 transition duration-150 max-md:hidden group-focus-within:visible group-focus-within:translate-y-0 group-focus-within:opacity-100 group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
+                    <ul className="w-max min-w-28 rounded-2xl bg-white p-1.5 shadow-xl ring-1 shadow-gray-900/10 ring-gray-900/5">
+                      {item.children.map((c) => (
+                        <li key={c.href}>
+                          <Link href={c.href} className="block rounded-xl px-3 py-2 text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900">{c.label}</Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
               </div>
             ))}
