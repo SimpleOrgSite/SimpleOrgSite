@@ -70,7 +70,7 @@ export default async function Dashboard() {
           <section className="space-y-3">
             <h2 className="text-lg font-medium">4. Header</h2>
             <p className="text-sm text-gray-600">Your logo appears at the top left of every page.</p>
-            <LogoForm logoUrl={logo} />
+            <LogoForm logoUrl={logo} logoSize={site.logo_size} />
             <SiteNameForm siteName={site.site_name} />
           </section>
 

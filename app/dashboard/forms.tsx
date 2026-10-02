@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState } from "react";
-import { addDomain, removeDomain, removeLogo, saveAbout, saveMessage, saveSiteName, uploadLogo, verifySite, type FormState } from "./actions";
+import { useActionState, useState } from "react";
+import { logoHeight } from "@/lib/logo";
+import { addDomain, removeDomain, removeLogo, saveAbout, saveLogoSize, saveMessage, saveSiteName, uploadLogo, verifySite, type FormState } from "./actions";
 
 function Feedback({ state }: { state: FormState }) {
   if (state?.error) return <p className="text-sm text-red-600">{state.error}</p>;
@@ -67,19 +68,32 @@ export function SiteNameForm({ siteName }: { siteName: string }) {
   );
 }
 
-export function LogoForm({ logoUrl }: { logoUrl: string | null }) {
+export function LogoForm({ logoUrl, logoSize }: { logoUrl: string | null; logoSize: number }) {
   const [state, action, pending] = useActionState(uploadLogo, null);
+  const [sizeState, sizeAction, sizePending] = useActionState(saveLogoSize, null);
+  const [size, setSize] = useState(logoSize);
   return (
     <div className="space-y-3">
       {logoUrl && (
         // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
-        <img src={logoUrl} alt="Current logo" className="h-12 w-auto max-w-[220px] object-contain" />
+        <img src={logoUrl} alt="Current logo" style={{ height: logoHeight(size) }} className="w-auto max-w-full object-contain" />
       )}
       <form action={action} className="space-y-3">
         <input type="file" name="logo" accept="image/png,image/jpeg,image/webp,image/svg+xml" required className="block text-sm" />
         <Feedback state={state} />
         <button disabled={pending} className={button}>{pending ? "Uploading…" : logoUrl ? "Replace logo" : "Upload logo"}</button>
       </form>
+      {logoUrl && (
+        <form action={sizeAction} className="space-y-3">
+          <label className="flex items-center gap-3 text-sm">
+            Size
+            <input type="range" name="logo_size" min={1} max={10} step={1} value={size} onChange={(e) => setSize(Number(e.target.value))} className="w-48" />
+            <span className="w-4 tabular-nums">{size}</span>
+          </label>
+          <Feedback state={sizeState} />
+          <button disabled={sizePending} className={button}>{sizePending ? "Saving…" : "Save size"}</button>
+        </form>
+      )}
       {logoUrl && (
         <form action={removeLogo}>
           <button className="text-sm text-gray-500 underline">Remove logo</button>

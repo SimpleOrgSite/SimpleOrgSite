@@ -117,3 +117,13 @@ export async function saveAbout(_: FormState, formData: FormData): Promise<FormS
   revalidatePath("/dashboard");
   return { ok: "Saved." };
 }
+
+export async function saveLogoSize(_: FormState, formData: FormData): Promise<FormState> {
+  const { supabase, user } = await currentUser();
+  const logo_size = Math.round(Number(formData.get("logo_size")));
+  if (!(logo_size >= 1 && logo_size <= 10)) return { error: "Size must be between 1 and 10." };
+  const { error } = await supabase.from("sites").update({ logo_size }).eq("owner_id", user.id);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard");
+  return { ok: "Saved." };
+}

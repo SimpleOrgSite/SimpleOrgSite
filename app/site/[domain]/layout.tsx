@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SITE_MARKER } from "@/lib/domain";
+import { logoHeight } from "@/lib/logo";
 import { getSite, logoUrl } from "@/lib/site";
 
 export default async function SiteLayout({ children, params }: LayoutProps<"/site/[domain]">) {
@@ -17,11 +18,11 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/sit
   return (
     <div className="flex min-h-screen flex-col bg-white text-gray-900" {...marker}>
       <header className="border-b border-gray-200">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-6">
+        <div className="mx-auto flex min-h-16 max-w-6xl items-center py-3 justify-between gap-6 px-6">
           <Link href="/" className="flex items-center">
             {logo ? (
               // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
-              <img src={logo} alt={site.site_name || "Home"} className="h-10 w-auto max-w-[220px] object-contain" />
+              <img src={logo} alt={site.site_name || "Home"} style={{ height: logoHeight(site.logo_size) }} className="w-auto max-w-[60vw] object-contain" />
             ) : (
               <span className="text-xl font-bold">{site.site_name || "Home"}</span>
             )}
