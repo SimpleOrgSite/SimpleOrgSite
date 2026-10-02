@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { hasText, sanitizeRichText } from "@/lib/richtext";
 import { DEFAULT_FIELD_LABELS, DIRECTOR_FIELDS, DIRECTOR_LAYOUTS, PHOTO_SHAPES, type FieldLabels } from "@/lib/directors";
 import { createClient } from "@/lib/supabase/server";
 import { addDomainToVercel, checkDomain, isValidDomain, normalizeDomain, removeDomainFromVercel } from "@/lib/domain";
@@ -120,20 +121,23 @@ export async function saveAbout(_: FormState, formData: FormData): Promise<FormS
   const { error } = await supabase.from("sites").update({ about_enabled, about_label }).eq("id", site.id);
   if (error) return { error: error.message };
 
-  // Fields are named section_<key> for each row in about_section_types; blank means "no section".
-  const { data: types } = await supabase.from("about_section_types").select("key");
-  const filled: { site_id: string; type_key: string; content: string }[] = [];
-  const emptied: string[] = [];
-  for (const { key } of types ?? []) {
-    const content = String(formData.get(`section_${key}`) ?? "").trim();
-    if (content) filled.push({ site_id: site.id, type_key: key, content });
-    else emptied.push(key);
-  }
-  if (filled.length) {
-    const { error } = await supabase.from("about_sections").upsert(filled);
+  // The three fields are parallel lists in on-screen order; position becomes sort_order.
+  const ids = formData.getAll("section_id").map(String);
+  const titles = formData.getAll("section_title").map(String);
+  const bodies = formData.getAll("section_body").map(String);
+  const rows = ids
+    .map((id, i) => ({ id, title: titles[i].trim(), body: sanitizeRichText(bodies[i]) }))
+    .filter((r) => /^[0-9a-f-]{36}$/i.test(r.id) && (r.title || hasText(r.body)))
+    .map((r, i) => ({ ...r, site_id: site.id, sort_order: i }));
+
+  if (rows.length) {
+    const { error } = await supabase.from("about_sections").upsert(rows);
     if (error) return { error: error.message };
   }
-  if (emptied.length) await supabase.from("about_sections").delete().eq("site_id", site.id).in("type_key", emptied);
+  // Anything the owner removed from the form is deleted.
+  const keep = rows.map((r) => r.id);
+  const del = supabase.from("about_sections").delete().eq("site_id", site.id);
+  await (keep.length ? del.not("id", "in", `(${keep.join(",")})`) : del);
 
   revalidatePath("/dashboard");
   return { ok: "Saved." };

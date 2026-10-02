@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
-import { getAboutSections, getDirectors, getSite, logoUrl } from "@/lib/site";
+import { sanitizeRichText } from "@/lib/richtext";
+import { getAboutSections, isVisible, getDirectors, getSite, logoUrl } from "@/lib/site";
 import { DirectorsView } from "./directors-view";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export default async function AboutPage({ params }: PageProps<"/site/[domain]/ab
   // A disabled section behaves as if it doesn't exist.
   if (!site?.about_enabled) notFound();
 
-  const sections = (await getAboutSections(site.id)).filter((s) => s.content);
+  const sections = (await getAboutSections(site.id)).filter(isVisible);
   const directors = site.directors_enabled
     ? await Promise.all((await getDirectors(site.id)).map(async ({ photo_path, ...d }) => ({ ...d, photoUrl: await logoUrl(photo_path) })))
     : [];
@@ -19,12 +20,12 @@ export default async function AboutPage({ params }: PageProps<"/site/[domain]/ab
   // One ordered list so Directors alternates like every other section. Even positions get a soft gradient, odd stay white.
   const parts = [
     ...sections.map((s) => ({
-      id: s.key,
+      id: s.anchor,
       content: (
         <div className="space-y-3">
-          <h2 className="text-center text-xl font-semibold">{s.label}</h2>
-          {/* pre-line keeps the owner's paragraph breaks without needing an editor or HTML. */}
-          <p className="max-w-3xl whitespace-pre-line text-lg leading-relaxed text-gray-700">{s.content}</p>
+          <h2 className="text-center text-xl font-semibold">{s.title}</h2>
+          {/* Sanitized again at render time, even though it was cleaned on save. */}
+          <div className="rich text-lg leading-relaxed text-gray-700" dangerouslySetInnerHTML={{ __html: sanitizeRichText(s.body) }} />
         </div>
       ),
     })),

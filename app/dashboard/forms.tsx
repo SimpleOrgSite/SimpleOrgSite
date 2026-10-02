@@ -1,10 +1,12 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Icon } from "./icons";
+import { RichEditor } from "./rich-editor";
 import { button, dangerLink, file, input, label as labelText, tile } from "./ui";
 import { logoHeight } from "@/lib/logo";
 import { DEFAULT_FIELD_LABELS, DIRECTOR_FIELDS, DIRECTOR_LAYOUTS, PHOTO_SHAPES, SHAPE_CLASSES, type DirectorLayout, type FieldLabels, type PhotoShape } from "@/lib/directors";
-import type { AboutSectionType } from "@/lib/site";
+import type { AboutSection } from "@/lib/site";
 import { addDomain, removeDomain, removeLogo, saveAbout, saveDirectorsSettings, saveLogoSize, saveMessage, saveSiteName, uploadLogo, verifySite, type FormState } from "./actions";
 
 function Feedback({ state }: { state: FormState }) {
@@ -111,8 +113,21 @@ export function LogoForm({ logoUrl, logoSize }: { logoUrl: string | null; logoSi
   );
 }
 
-export function AboutForm({ enabled, label, sections }: { enabled: boolean; label: string; sections: AboutSectionType[] }) {
+type EditableSection = { id: string; title: string; body: string };
+
+export function AboutForm({ enabled, label, sections: initial }: { enabled: boolean; label: string; sections: AboutSection[] }) {
   const [state, action, pending] = useActionState(saveAbout, null);
+  const [sections, setSections] = useState<EditableSection[]>(initial.map(({ id, title, body }) => ({ id, title, body })));
+
+  const update = (id: string, patch: Partial<EditableSection>) => setSections((all) => all.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  const move = (i: number, by: number) =>
+    setSections((all) => {
+      const next = [...all];
+      [next[i], next[i + by]] = [next[i + by], next[i]];
+      return next;
+    });
+  const iconButton = "flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30 disabled:hover:bg-transparent";
+
   return (
     <form action={action} className="space-y-4">
       <label className={tile}>
@@ -123,13 +138,45 @@ export function AboutForm({ enabled, label, sections }: { enabled: boolean; labe
         <span className={labelText}>Menu and page title</span>
         <input name="about_label" defaultValue={label} placeholder="About Us" className={input} />
       </label>
-      <p className="border-t border-gray-100 pt-4 text-sm text-gray-500">Fill in any of these. Empty ones won&apos;t appear on your page.</p>
-      {sections.map((s) => (
-        <label key={s.key} className="block space-y-1">
-          <span className={labelText}>{s.label}</span>
-          <textarea name={`section_${s.key}`} defaultValue={s.content} rows={5} className={input} />
-        </label>
-      ))}
+
+      <div className="space-y-4 border-t border-gray-100 pt-5">
+        <p className="text-sm text-gray-500">Each section appears on your page and as a choice in the menu dropdown.</p>
+        {sections.map((s, i) => (
+          <div key={s.id} className="space-y-3 rounded-2xl border border-gray-200 bg-gray-50/50 p-4">
+            <input type="hidden" name="section_id" value={s.id} />
+            <input type="hidden" name="section_body" value={s.body} />
+            <div className="flex items-center gap-2">
+              <input
+                name="section_title"
+                value={s.title}
+                onChange={(e) => update(s.id, { title: e.target.value })}
+                placeholder="Section name, e.g. Our mission"
+                className={`${input} font-medium`}
+              />
+              <button type="button" aria-label="Move up" title="Move up" disabled={i === 0} onClick={() => move(i, -1)} className={iconButton}><Icon name="arrow-up" /></button>
+              <button type="button" aria-label="Move down" title="Move down" disabled={i === sections.length - 1} onClick={() => move(i, 1)} className={iconButton}><Icon name="arrow-down" /></button>
+              <button
+                type="button"
+                aria-label="Delete section"
+                title="Delete section"
+                onClick={() => setSections((all) => all.filter((x) => x.id !== s.id))}
+                className={`${iconButton} hover:!bg-red-50 hover:!text-red-600`}
+              >
+                <Icon name="trash" />
+              </button>
+            </div>
+            <RichEditor initial={s.body} onChange={(body) => update(s.id, { body })} />
+          </div>
+        ))}
+        <button
+          type="button"
+          onClick={() => setSections((all) => [...all, { id: crypto.randomUUID(), title: "", body: "" }])}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-gray-300 py-3 text-sm font-medium text-gray-600 transition hover:border-gray-400 hover:bg-gray-50"
+        >
+          <Icon name="plus" /> Add section
+        </button>
+      </div>
+
       <Feedback state={state} />
       <button disabled={pending} className={button}>{pending ? "Saving…" : "Save"}</button>
     </form>

@@ -1,5 +1,6 @@
 import { cache } from "react";
 import type { Director, DirectorLayout, FieldLabels, PhotoShape } from "@/lib/directors";
+import { hasText } from "@/lib/richtext";
 import { createClient } from "@/lib/supabase/server";
 
 export type Site = {
@@ -33,18 +34,31 @@ export async function logoUrl(path: string | null) {
   return supabase.storage.from("logos").getPublicUrl(path).data.publicUrl;
 }
 
-export type AboutSectionType = { key: string; label: string; content: string };
+export type AboutSection = { id: string; title: string; body: string; anchor: string };
 
-// Every section type, with the site's text ("" when unfilled), in display order.
-export const getAboutSections = cache(async (siteId: string): Promise<AboutSectionType[]> => {
+const slugify = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "section";
+
+// All of a site's custom sections in order, each with a unique URL anchor derived from its title.
+export const getAboutSections = cache(async (siteId: string): Promise<AboutSection[]> => {
   const supabase = await createClient();
-  const [{ data: types }, { data: rows }] = await Promise.all([
-    supabase.from("about_section_types").select("key, label").order("sort_order"),
-    supabase.from("about_sections").select("type_key, content").eq("site_id", siteId),
-  ]);
-  const content = new Map((rows ?? []).map((r) => [r.type_key, r.content]));
-  return (types ?? []).map((t) => ({ ...t, content: content.get(t.key) ?? "" }));
+  const { data } = await supabase
+    .from("about_sections")
+    .select("id, title, body")
+    .eq("site_id", siteId)
+    .order("sort_order")
+    .order("created_at");
+  const used = new Set(["directors"]); // reserved for the built-in Directors section
+  return (data ?? []).map((row) => {
+    const base = slugify(row.title);
+    let anchor = base;
+    for (let n = 2; used.has(anchor); n++) anchor = `${base}-${n}`;
+    used.add(anchor);
+    return { ...row, anchor };
+  });
 });
+
+// A section only shows on the public site when it has both a name and some text.
+export const isVisible = (s: AboutSection) => !!s.title.trim() && hasText(s.body);
 
 export const getDirectors = cache(async (siteId: string): Promise<Director[]> => {
   const supabase = await createClient();

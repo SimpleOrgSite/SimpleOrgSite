@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SITE_MARKER } from "@/lib/domain";
 import { logoHeight } from "@/lib/logo";
-import { getAboutSections, getDirectors, getSite, logoUrl } from "@/lib/site";
+import { getAboutSections, isVisible, getDirectors, getSite, logoUrl } from "@/lib/site";
 
 export default async function SiteLayout({ children, params }: LayoutProps<"/site/[domain]">) {
   const { domain } = await params;
@@ -15,7 +15,7 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/sit
   // Home is always first: not everyone knows the logo is a link.
   const nav: NavItem[] = [{ href: "/", label: "Home", children: [] }];
   if (site.about_enabled) {
-    const children = (await getAboutSections(site.id)).filter((s) => s.content).map((s) => ({ href: `/about#${s.key}`, label: s.label }));
+    const children = (await getAboutSections(site.id)).filter(isVisible).map((s) => ({ href: `/about#${s.anchor}`, label: s.title }));
     if (site.directors_enabled && (await getDirectors(site.id)).length > 0) {
       children.push({ href: "/about#directors", label: site.directors_label || "Directors" });
     }
