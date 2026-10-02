@@ -217,7 +217,7 @@ export async function saveDirector(id: string | null, _: FormState, formData: Fo
 
   if (oldPhoto && oldPhoto !== photo_path) await supabase.storage.from("logos").remove([oldPhoto]);
   revalidatePath("/dashboard");
-  redirect("/dashboard");
+  redirect("/dashboard?tab=about");
 }
 
 export async function deleteDirector(id: string) {
@@ -228,5 +228,5 @@ export async function deleteDirector(id: string) {
   if (d?.photo_path) await supabase.storage.from("logos").remove([d.photo_path]);
   await supabase.from("directors").delete().eq("id", id).eq("site_id", site.id);
   revalidatePath("/dashboard");
-  redirect("/dashboard");
+  redirect("/dashboard?tab=about");
 }
