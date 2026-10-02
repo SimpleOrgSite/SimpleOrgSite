@@ -12,7 +12,8 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/sit
   const logo = await logoUrl(site.logo_path);
   // About is one page; its dropdown jumps to each filled-in part of it.
   type NavItem = { href: string; label: string; children: { href: string; label: string }[] };
-  const nav: NavItem[] = [];
+  // Home is always first: not everyone knows the logo is a link.
+  const nav: NavItem[] = [{ href: "/", label: "Home", children: [] }];
   if (site.about_enabled) {
     const children = (await getAboutSections(site.id)).filter((s) => s.content).map((s) => ({ href: `/about#${s.key}`, label: s.label }));
     if (site.directors_enabled && (await getDirectors(site.id)).length > 0) {
