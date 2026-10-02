@@ -61,11 +61,15 @@ export function RemoveDomainForm() {
   );
 }
 
-export function SiteNameForm({ siteName }: { siteName: string }) {
+export function SiteNameForm({ siteName, showWithLogo }: { siteName: string; showWithLogo: boolean }) {
   const [state, action, pending] = useActionState(saveSiteName, null);
   return (
     <form action={action} className="space-y-4">
-      <input name="site_name" defaultValue={siteName} placeholder="Shown in the header if you have no logo" className={input} />
+      <input name="site_name" defaultValue={siteName} placeholder="Your organization's name" className={input} />
+      <label className={tile}>
+        <input type="checkbox" name="show_name_with_logo" defaultChecked={showWithLogo} className="h-4 w-4 accent-gray-900" />
+        Show the name next to my logo
+      </label>
       <Feedback state={state} />
       <button disabled={pending} className={button}>{pending ? "Saving…" : "Save name"}</button>
     </form>
@@ -231,8 +235,8 @@ export function DirectorsSettingsForm({
 const THEME_COLORS = ["#1f2937", "#2563eb", "#0f766e", "#16a34a", "#dc2626", "#ea580c", "#7c3aed", "#db2777"];
 
 export function HeaderStyleForm({
-  style: initialStyle, color: initialColor, siteName, logoUrl, logoSize,
-}: { style: "light" | "dark"; color: string; siteName: string; logoUrl: string | null; logoSize: number }) {
+  style: initialStyle, color: initialColor, siteName, showNameWithLogo, logoUrl, logoSize,
+}: { style: "light" | "dark"; color: string; siteName: string; showNameWithLogo: boolean; logoUrl: string | null; logoSize: number }) {
   const [state, action, pending] = useActionState(saveHeaderStyle, null);
   const [style, setStyle] = useState(initialStyle);
   const [color, setColor] = useState(initialColor);
@@ -244,12 +248,13 @@ export function HeaderStyleForm({
         className={`flex items-center justify-between rounded-xl px-5 py-3 ${dark ? "" : "border border-gray-200 bg-white"}`}
         style={dark ? { backgroundColor: color, color: "#fff" } : { color }}
       >
-        {logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
-          <img src={logoUrl} alt="" style={{ height: Math.min(logoHeight(logoSize), 40) }} className="w-auto max-w-[50%] object-contain" />
-        ) : (
-          <span className="text-lg font-bold">{siteName || "Your site"}</span>
-        )}
+        <span className="flex items-center gap-3">
+          {logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
+            <img src={logoUrl} alt="" style={{ height: Math.min(logoHeight(logoSize), 40) }} className="w-auto max-w-[50%] object-contain" />
+          )}
+          {(!logoUrl || showNameWithLogo) && <span className="text-lg font-bold">{siteName || "Your site"}</span>}
+        </span>
         <span className="flex gap-6 text-sm opacity-80"><span>Home</span><span>About</span></span>
       </div>
 

@@ -67,7 +67,8 @@ export async function verifySite(): Promise<FormState> {
 export async function saveSiteName(_: FormState, formData: FormData): Promise<FormState> {
   const { supabase, user } = await currentUser();
   const site_name = String(formData.get("site_name")).trim();
-  const { error } = await supabase.from("sites").update({ site_name }).eq("owner_id", user.id);
+  const show_name_with_logo = formData.get("show_name_with_logo") === "on";
+  const { error } = await supabase.from("sites").update({ site_name, show_name_with_logo }).eq("owner_id", user.id);
   if (error) return { error: error.message };
   revalidatePath("/dashboard");
   return { ok: "Saved." };

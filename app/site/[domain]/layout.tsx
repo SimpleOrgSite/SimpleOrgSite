@@ -33,13 +33,12 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/sit
         style={dark ? { backgroundColor: site.theme_color, color: "#fff" } : { color: site.theme_color }}
       >
         <div className="mx-auto flex min-h-16 max-w-6xl items-center py-3 justify-between gap-6 px-6">
-          <Link href="/" className="flex items-center">
-            {logo ? (
+          <Link href="/" className="flex items-center gap-3">
+            {logo && (
               // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
-              <img src={logo} alt={site.site_name || "Home"} style={{ height: logoHeight(site.logo_size) }} className="w-auto max-w-[60vw] object-contain" />
-            ) : (
-              <span className="text-xl font-bold">{site.site_name || "Home"}</span>
+              <img src={logo} alt={site.show_name_with_logo && site.site_name ? "" : site.site_name || "Home"} style={{ height: logoHeight(site.logo_size) }} className="w-auto max-w-[60vw] object-contain" />
             )}
+            {(!logo || site.show_name_with_logo) && <span className="text-xl font-bold">{site.site_name || "Home"}</span>}
           </Link>
           <nav className="flex items-center gap-8">
             {nav.map((item) => (

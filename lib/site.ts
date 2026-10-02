@@ -8,6 +8,7 @@ export type Site = {
   site_name: string;
   logo_path: string | null;
   logo_size: number;
+  show_name_with_logo: boolean;
   header_style: "light" | "dark";
   theme_color: string;
   message: string;
@@ -23,7 +24,7 @@ export const getSite = cache(async (domain: string): Promise<Site | null> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("sites")
-    .select("id, site_name, logo_path, logo_size, header_style, theme_color, message, about_enabled, about_label, directors_enabled, directors_label, directors_layout, directors_photo_shape")
+    .select("id, site_name, logo_path, logo_size, show_name_with_logo, header_style, theme_color, message, about_enabled, about_label, directors_enabled, directors_label, directors_layout, directors_photo_shape")
     .eq("domain", decodeURIComponent(domain).toLowerCase())
     .maybeSingle();
   return data;

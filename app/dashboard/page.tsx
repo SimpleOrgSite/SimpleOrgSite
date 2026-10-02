@@ -125,10 +125,10 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
                   <LogoForm logoUrl={logo} logoSize={site.logo_size} />
                 </Card>
                 <Card title="Header style" description="Light or dark, and the theme color that goes with it.">
-                  <HeaderStyleForm style={site.header_style} color={site.theme_color} siteName={site.site_name} logoUrl={logo} logoSize={site.logo_size} />
+                  <HeaderStyleForm style={site.header_style} color={site.theme_color} siteName={site.site_name} showNameWithLogo={site.show_name_with_logo} logoUrl={logo} logoSize={site.logo_size} />
                 </Card>
-                <Card title="Site name" description="Shown in the header when you have no logo.">
-                  <SiteNameForm siteName={site.site_name} />
+                <Card title="Site name" description="Shown in the header when you have no logo, or next to it if you choose.">
+                  <SiteNameForm siteName={site.site_name} showWithLogo={site.show_name_with_logo} />
                 </Card>
               </>
             )}
