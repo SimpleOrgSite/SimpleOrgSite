@@ -10,11 +10,13 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/sit
   if (!site) notFound();
 
   const logo = await logoUrl(site.logo_path);
-  // Sections show up here only when the owner has switched them on.
-  const nav = [
-    site.about_enabled && { href: "/about", label: site.about_label || "About Us" },
-    site.directors_enabled && { href: "/directors", label: site.directors_label || "Directors" },
-  ].filter(Boolean) as { href: string; label: string }[];
+  // Sections show up here only when the owner has switched them on. Directors lives under About,
+  // so it needs About enabled too.
+  type NavItem = { href: string; label: string; children?: { href: string; label: string }[] };
+  const directors = site.about_enabled && site.directors_enabled && { href: "/about/directors", label: site.directors_label || "Directors" };
+  const nav: NavItem[] = [
+    site.about_enabled && { href: "/about", label: site.about_label || "About Us", children: directors ? [directors] : [] },
+  ].filter(Boolean) as NavItem[];
 
   // The marker lives in the layout so every page proves it was served by us.
   const marker = { [SITE_MARKER]: site.id };
@@ -32,9 +34,22 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/sit
           </Link>
           <nav className="flex items-center gap-8">
             {nav.map((item) => (
-              <Link key={item.href} href={item.href} className="text-gray-600 hover:text-gray-900">
-                {item.label}
-              </Link>
+              <div key={item.href} className="group relative flex items-center gap-8">
+                <Link href={item.href} className="text-gray-600 hover:text-gray-900">{item.label}</Link>
+                {/* Phones have no hover, so sub-pages sit inline there and drop down from md up. */}
+                {item.children?.map((c) => (
+                  <Link key={c.href} href={c.href} className="text-gray-600 hover:text-gray-900 md:hidden">{c.label}</Link>
+                ))}
+                {!!item.children?.length && (
+                  <ul className="absolute right-0 top-full z-10 hidden min-w-40 rounded-md border border-gray-200 bg-white py-2 shadow-sm md:group-hover:block md:group-focus-within:block">
+                    {item.children.map((c) => (
+                      <li key={c.href}>
+                        <Link href={c.href} className="block px-4 py-1.5 text-gray-600 hover:bg-gray-50 hover:text-gray-900">{c.label}</Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             ))}
           </nav>
         </div>

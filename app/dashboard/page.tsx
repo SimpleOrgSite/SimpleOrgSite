@@ -81,10 +81,9 @@ export default async function Dashboard() {
           <section className="space-y-3">
             <h2 className="text-lg font-medium">5. About Us</h2>
             <AboutForm enabled={site.about_enabled} label={site.about_label} sections={aboutSections} />
-          </section>
 
-          <section className="space-y-3">
-            <h2 className="text-lg font-medium">6. {site.directors_label}</h2>
+            <div className="mt-8 space-y-3 border-l-2 pl-5">
+            <h3 className="text-lg font-medium">{site.directors_label} <span className="text-sm font-normal text-gray-500">(a sub-page of {site.about_label})</span></h3>
             <DirectorsSettingsForm enabled={site.directors_enabled} label={site.directors_label} labels={fieldLabels(site.directors_field_labels)} layout={site.directors_layout} shape={site.directors_photo_shape} />
             <ul className="divide-y rounded border">
               {directors.map((d) => (
@@ -98,6 +97,7 @@ export default async function Dashboard() {
               {directors.length === 0 && <li className="p-3 text-sm text-gray-500">No one added yet.</li>}
             </ul>
             <Link href="/dashboard/directors/new" className="inline-block rounded bg-black px-4 py-2 text-white">Add person</Link>
+            </div>
           </section>
         </>
       )}

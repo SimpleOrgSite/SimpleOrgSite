@@ -4,10 +4,10 @@ import { DirectorsView } from "./directors-view";
 
 export const dynamic = "force-dynamic";
 
-export default async function DirectorsPage({ params }: PageProps<"/site/[domain]/directors">) {
+export default async function DirectorsPage({ params }: PageProps<"/site/[domain]/about/directors">) {
   const { domain } = await params;
   const site = await getSite(domain);
-  if (!site?.directors_enabled) notFound();
+  if (!site?.about_enabled || !site.directors_enabled) notFound();
 
   const directors = await Promise.all(
     (await getDirectors(site.id)).map(async ({ photo_path, ...d }) => ({ ...d, photoUrl: await logoUrl(photo_path) })),
