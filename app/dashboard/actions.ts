@@ -60,3 +60,60 @@ export async function verifySite(): Promise<FormState> {
   if (!dns) return { error: "DNS isn't pointing at us yet. Changes can take a while to propagate; try again shortly." };
   return { error: "DNS is set, but the page didn't load yet. The HTTPS certificate may still be provisioning; try again shortly." };
 }
+
+export async function saveSiteName(_: FormState, formData: FormData): Promise<FormState> {
+  const { supabase, user } = await currentUser();
+  const site_name = String(formData.get("site_name")).trim();
+  const { error } = await supabase.from("sites").update({ site_name }).eq("owner_id", user.id);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard");
+  return { ok: "Saved." };
+}
+
+const LOGO_TYPES: Record<string, string> = {
+  "image/png": "png",
+  "image/jpeg": "jpg",
+  "image/webp": "webp",
+  "image/svg+xml": "svg",
+};
+
+export async function uploadLogo(_: FormState, formData: FormData): Promise<FormState> {
+  const { supabase, user } = await currentUser();
+  const file = formData.get("logo");
+  if (!(file instanceof File) || file.size === 0) return { error: "Choose an image first." };
+  const ext = LOGO_TYPES[file.type];
+  if (!ext) return { error: "Logo must be a PNG, JPG, WebP or SVG." };
+  if (file.size > 2 * 1024 * 1024) return { error: "Logo must be under 2 MB." };
+
+  const { data: site } = await supabase.from("sites").select("logo_path").eq("owner_id", user.id).maybeSingle();
+  if (!site) return { error: "No domain set." };
+
+  // A new filename each time sidesteps CDN/browser caching of the old logo.
+  const path = `${user.id}/logo-${Date.now()}.${ext}`;
+  const { error: uploadError } = await supabase.storage.from("logos").upload(path, file, { contentType: file.type });
+  if (uploadError) return { error: uploadError.message };
+
+  const { error } = await supabase.from("sites").update({ logo_path: path }).eq("owner_id", user.id);
+  if (error) return { error: error.message };
+  if (site.logo_path) await supabase.storage.from("logos").remove([site.logo_path]);
+  revalidatePath("/dashboard");
+  return { ok: "Logo updated." };
+}
+
+export async function removeLogo() {
+  const { supabase, user } = await currentUser();
+  const { data: site } = await supabase.from("sites").select("logo_path").eq("owner_id", user.id).maybeSingle();
+  if (site?.logo_path) await supabase.storage.from("logos").remove([site.logo_path]);
+  await supabase.from("sites").update({ logo_path: null }).eq("owner_id", user.id);
+  revalidatePath("/dashboard");
+}
+
+export async function saveAbout(_: FormState, formData: FormData): Promise<FormState> {
+  const { supabase, user } = await currentUser();
+  const about_enabled = formData.get("about_enabled") === "on";
+  const about_content = String(formData.get("about_content")).trim();
+  const { error } = await supabase.from("sites").update({ about_enabled, about_content }).eq("owner_id", user.id);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard");
+  return { ok: "Saved." };
+}

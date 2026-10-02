@@ -12,7 +12,7 @@ export async function proxy(request: NextRequest) {
   // Customer domain: serve their site from the internal /site/[domain] route.
   if (!platformHosts.includes(host)) {
     const url = request.nextUrl.clone();
-    url.pathname = `/site/${host}`;
+    url.pathname = `/site/${host}${request.nextUrl.pathname === "/" ? "" : request.nextUrl.pathname}`;
     return NextResponse.rewrite(url);
   }
 

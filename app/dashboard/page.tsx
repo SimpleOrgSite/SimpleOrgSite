@@ -1,8 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { dnsRecordsFor } from "@/lib/domain";
+import { logoUrl } from "@/lib/site";
 import { logout } from "../login/actions";
-import { AddDomainForm, MessageForm, RemoveDomainForm, VerifyForm } from "./forms";
+import { AboutForm, AddDomainForm, LogoForm, MessageForm, SiteNameForm, RemoveDomainForm, VerifyForm } from "./forms";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,8 @@ export default async function Dashboard() {
   if (!auth.user) redirect("/login");
 
   const { data: site } = await supabase.from("sites").select("*").eq("owner_id", auth.user.id).maybeSingle();
+
+  const logo = await logoUrl(site?.logo_path ?? null);
 
   return (
     <main className="mx-auto max-w-2xl space-y-10 p-8">
@@ -62,6 +65,18 @@ export default async function Dashboard() {
           <section className="space-y-3">
             <h2 className="text-lg font-medium">3. Edit your message</h2>
             <MessageForm message={site.message} />
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-medium">4. Header</h2>
+            <p className="text-sm text-gray-600">Your logo appears at the top left of every page.</p>
+            <LogoForm logoUrl={logo} />
+            <SiteNameForm siteName={site.site_name} />
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-medium">5. About Us</h2>
+            <AboutForm enabled={site.about_enabled} content={site.about_content} />
           </section>
         </>
       )}

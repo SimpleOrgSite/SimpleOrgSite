@@ -1,23 +1,16 @@
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { SITE_MARKER } from "@/lib/domain";
+import { getSite } from "@/lib/site";
 
 export const dynamic = "force-dynamic";
 
-export default async function SitePage({ params }: { params: Promise<{ domain: string }> }) {
+export default async function SitePage({ params }: PageProps<"/site/[domain]">) {
   const { domain } = await params;
-  const supabase = await createClient();
-  const { data: site } = await supabase
-    .from("sites")
-    .select("id, message")
-    .eq("domain", decodeURIComponent(domain).toLowerCase())
-    .maybeSingle();
+  const site = await getSite(domain);
   if (!site) notFound();
 
-  const marker = { [SITE_MARKER]: site.id };
   return (
-    <main className="flex min-h-screen items-center justify-center p-8" {...marker}>
-      <h1 className="text-4xl font-semibold text-center">{site.message}</h1>
-    </main>
+    <div className="flex min-h-[60vh] items-center justify-center p-8">
+      <h1 className="text-center text-4xl font-semibold">{site.message}</h1>
+    </div>
   );
 }
