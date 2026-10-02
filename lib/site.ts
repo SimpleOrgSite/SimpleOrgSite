@@ -36,7 +36,7 @@ export async function logoUrl(path: string | null) {
 export type AboutSectionType = { key: string; label: string; content: string };
 
 // Every section type, with the site's text ("" when unfilled), in display order.
-export async function getAboutSections(siteId: string): Promise<AboutSectionType[]> {
+export const getAboutSections = cache(async (siteId: string): Promise<AboutSectionType[]> => {
   const supabase = await createClient();
   const [{ data: types }, { data: rows }] = await Promise.all([
     supabase.from("about_section_types").select("key, label").order("sort_order"),
@@ -44,9 +44,9 @@ export async function getAboutSections(siteId: string): Promise<AboutSectionType
   ]);
   const content = new Map((rows ?? []).map((r) => [r.type_key, r.content]));
   return (types ?? []).map((t) => ({ ...t, content: content.get(t.key) ?? "" }));
-}
+});
 
-export async function getDirectors(siteId: string): Promise<Director[]> {
+export const getDirectors = cache(async (siteId: string): Promise<Director[]> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("directors")
@@ -54,4 +54,4 @@ export async function getDirectors(siteId: string): Promise<Director[]> {
     .eq("site_id", siteId)
     .order("created_at");
   return data ?? [];
-}
+});

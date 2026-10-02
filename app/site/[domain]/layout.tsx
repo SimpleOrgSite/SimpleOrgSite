@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SITE_MARKER } from "@/lib/domain";
 import { logoHeight } from "@/lib/logo";
-import { getSite, logoUrl } from "@/lib/site";
+import { getAboutSections, getDirectors, getSite, logoUrl } from "@/lib/site";
 
 export default async function SiteLayout({ children, params }: LayoutProps<"/site/[domain]">) {
   const { domain } = await params;
@@ -10,13 +10,16 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/sit
   if (!site) notFound();
 
   const logo = await logoUrl(site.logo_path);
-  // Sections show up here only when the owner has switched them on. Directors lives under About,
-  // so it needs About enabled too.
-  type NavItem = { href: string; label: string; children?: { href: string; label: string }[] };
-  const directors = site.about_enabled && site.directors_enabled && { href: "/about/directors", label: site.directors_label || "Directors" };
-  const nav: NavItem[] = [
-    site.about_enabled && { href: "/about", label: site.about_label || "About Us", children: directors ? [directors] : [] },
-  ].filter(Boolean) as NavItem[];
+  // About is one page; its dropdown jumps to each filled-in part of it.
+  type NavItem = { href: string; label: string; children: { href: string; label: string }[] };
+  const nav: NavItem[] = [];
+  if (site.about_enabled) {
+    const children = (await getAboutSections(site.id)).filter((s) => s.content).map((s) => ({ href: `/about#${s.key}`, label: s.label }));
+    if (site.directors_enabled && (await getDirectors(site.id)).length > 0) {
+      children.push({ href: "/about#directors", label: site.directors_label || "Directors" });
+    }
+    nav.push({ href: "/about", label: site.about_label || "About Us", children });
+  }
 
   // The marker lives in the layout so every page proves it was served by us.
   const marker = { [SITE_MARKER]: site.id };
@@ -37,10 +40,10 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/sit
               <div key={item.href} className="group relative flex items-center gap-8">
                 <Link href={item.href} className="text-gray-600 hover:text-gray-900">{item.label}</Link>
                 {/* Phones have no hover, so sub-pages sit inline there and drop down from md up. */}
-                {item.children?.map((c) => (
+                {item.children.map((c) => (
                   <Link key={c.href} href={c.href} className="text-gray-600 hover:text-gray-900 md:hidden">{c.label}</Link>
                 ))}
-                {!!item.children?.length && (
+                {item.children.length > 0 && (
                   <ul className="absolute right-0 top-full z-10 hidden min-w-40 rounded-md border border-gray-200 bg-white py-2 shadow-sm md:group-hover:block md:group-focus-within:block">
                     {item.children.map((c) => (
                       <li key={c.href}>

@@ -83,7 +83,7 @@ export default async function Dashboard() {
             <AboutForm enabled={site.about_enabled} label={site.about_label} sections={aboutSections} />
 
             <div className="mt-8 space-y-3 border-l-2 pl-5">
-            <h3 className="text-lg font-medium">{site.directors_label} <span className="text-sm font-normal text-gray-500">(a sub-page of {site.about_label})</span></h3>
+            <h3 className="text-lg font-medium">{site.directors_label} <span className="text-sm font-normal text-gray-500">(a section of the {site.about_label} page)</span></h3>
             <DirectorsSettingsForm enabled={site.directors_enabled} label={site.directors_label} labels={fieldLabels(site.directors_field_labels)} layout={site.directors_layout} shape={site.directors_photo_shape} />
             <ul className="divide-y rounded border">
               {directors.map((d) => (

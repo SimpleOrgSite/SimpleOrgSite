@@ -139,10 +139,10 @@ export function DirectorsSettingsForm({
     <form action={action} className="space-y-4">
       <label className="flex items-center gap-2">
         <input type="checkbox" name="directors_enabled" defaultChecked={enabled} />
-        Show this page in my site&apos;s menu
+        Show this section on my About page
       </label>
       <label className="block space-y-1">
-        <span className="text-sm text-gray-600">Menu and page title</span>
+        <span className="text-sm text-gray-600">Section title (also its menu entry)</span>
         <input name="directors_label" defaultValue={label} placeholder="Directors" className="w-full rounded border p-2" />
       </label>
       <fieldset className="space-y-2">
