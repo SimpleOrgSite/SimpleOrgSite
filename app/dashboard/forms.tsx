@@ -6,8 +6,8 @@ import { RichEditor } from "./rich-editor";
 import { button, dangerLink, file, input, label as labelText, tile } from "./ui";
 import { logoHeight } from "@/lib/logo";
 import { DIRECTOR_LAYOUTS, PHOTO_SHAPES, SHAPE_CLASSES, type DirectorLayout, type PhotoShape } from "@/lib/directors";
-import type { AboutSection } from "@/lib/site";
-import { addDomain, removeDomain, removeLogo, saveAbout, saveDirectorsSettings, saveHeaderStyle, saveLogoSize, saveMessage, saveSiteName, uploadLogo, verifySite, type FormState } from "./actions";
+import type { AboutSection, Site } from "@/lib/site";
+import { addDomain, removeDomain, removeLogo, saveAbout, saveDirectorsSettings, saveFooter, saveHeaderStyle, saveLogoSize, saveMessage, saveSiteName, uploadLogo, verifySite, type FormState } from "./actions";
 
 function Feedback({ state }: { state: FormState }) {
   if (state?.error) return <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>;
@@ -297,6 +297,90 @@ export function HeaderStyleForm({
 
       <Feedback state={state} />
       <button disabled={pending} className={button}>{pending ? "Saving…" : "Save header style"}</button>
+    </form>
+  );
+}
+
+type FooterProps = Pick<Site, "footer_match_header" | "footer_style" | "footer_show_logo" | "footer_show_name" | "footer_show_copyright" | "footer_show_nav" | "footer_show_email" | "footer_email">;
+
+export function FooterForm({
+  site, headerStyle, color, siteName, logoUrl,
+}: { site: FooterProps; headerStyle: "light" | "dark"; color: string; siteName: string; logoUrl: string | null }) {
+  const [state, action, pending] = useActionState(saveFooter, null);
+  const [match, setMatch] = useState(site.footer_match_header);
+  const [own, setOwn] = useState(site.footer_style);
+  const [showLogo, setShowLogo] = useState(site.footer_show_logo);
+  const [showName, setShowName] = useState(site.footer_show_name);
+  const [showCopyright, setShowCopyright] = useState(site.footer_show_copyright);
+  const [showNav, setShowNav] = useState(site.footer_show_nav);
+  const [showEmail, setShowEmail] = useState(site.footer_show_email);
+  const [email, setEmail] = useState(site.footer_email);
+  // While matching, the footer follows the header, and the light/dark choice is shown (greyed) as that value.
+  const style = match ? headerStyle : own;
+  const dark = style === "dark";
+  const checkbox = "h-4 w-4 accent-gray-900";
+  return (
+    <form action={action} className="space-y-5">
+      {/* Mini footer preview; reflects the choices below before saving. */}
+      <div
+        className={`space-y-2 rounded-xl px-5 py-4 text-sm ${dark ? "" : "border border-gray-200 bg-white"}`}
+        style={dark ? { backgroundColor: color, color: "#fff" } : { color }}
+      >
+        {(showLogo || showName || showNav) && (
+          <div className="flex items-center justify-between gap-4">
+            <span className="flex items-center gap-2 font-semibold">
+              {showLogo && logoUrl && (
+                // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
+                <img src={logoUrl} alt="" className="h-6 w-auto object-contain" />
+              )}
+              {showName && (siteName || "Your site")}
+            </span>
+            {showNav && <span className="flex gap-4 opacity-75"><span>Home</span><span>About</span></span>}
+          </div>
+        )}
+        {(showCopyright || (showEmail && email)) && (
+          <div className="flex items-center justify-between gap-4 opacity-75">
+            <span>{showCopyright && `© ${new Date().getFullYear()}${showName && siteName ? ` ${siteName}` : ""}`}</span>
+            {showEmail && email && <span>{email}</span>}
+          </div>
+        )}
+        {!showLogo && !showName && !showNav && !showCopyright && !(showEmail && email) && <span className="opacity-60">Nothing selected: no footer will show.</span>}
+      </div>
+
+      <fieldset className="space-y-2">
+        <legend className={`${labelText} mb-2`}>Footer style</legend>
+        <label className={tile}>
+          <input type="checkbox" name="footer_match_header" checked={match} onChange={(e) => setMatch(e.target.checked)} className={checkbox} />
+          Match my header
+        </label>
+        <div className={`grid grid-cols-2 gap-2 transition-opacity ${match ? "pointer-events-none opacity-50" : ""}`}>
+          {([["light", "Light"], ["dark", "Dark"]] as const).map(([value, name]) => (
+            <label key={value} className={tile}>
+              <input type="radio" name="footer_style" value={value} checked={style === value} disabled={match} onChange={() => setOwn(value)} className="accent-gray-900" />
+              {name}
+            </label>
+          ))}
+        </div>
+        {/* Disabled inputs aren't submitted, so keep the stored choice flowing through while matching. */}
+        {match && <input type="hidden" name="footer_style" value={own} />}
+      </fieldset>
+
+      <fieldset className="space-y-2">
+        <legend className={`${labelText} mb-2`}>What to show</legend>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <label className={tile}><input type="checkbox" name="footer_show_logo" checked={showLogo} onChange={(e) => setShowLogo(e.target.checked)} className={checkbox} />Logo</label>
+          <label className={tile}><input type="checkbox" name="footer_show_name" checked={showName} onChange={(e) => setShowName(e.target.checked)} className={checkbox} />Site name</label>
+          <label className={tile}><input type="checkbox" name="footer_show_copyright" checked={showCopyright} onChange={(e) => setShowCopyright(e.target.checked)} className={checkbox} />Copyright with the current year</label>
+          <label className={tile}><input type="checkbox" name="footer_show_nav" checked={showNav} onChange={(e) => setShowNav(e.target.checked)} className={checkbox} />Menu links</label>
+          <label className={`${tile} sm:col-span-2`}><input type="checkbox" name="footer_show_email" checked={showEmail} onChange={(e) => setShowEmail(e.target.checked)} className={checkbox} />Contact email</label>
+        </div>
+        {showEmail && (
+          <input type="email" name="footer_email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="info@yourorganization.org" className={input} />
+        )}
+      </fieldset>
+
+      <Feedback state={state} />
+      <button disabled={pending} className={button}>{pending ? "Saving…" : "Save footer"}</button>
     </form>
   );
 }

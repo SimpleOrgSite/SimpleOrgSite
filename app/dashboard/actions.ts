@@ -244,3 +244,28 @@ export async function saveHeaderStyle(_: FormState, formData: FormData): Promise
   revalidatePath("/dashboard");
   return { ok: "Saved." };
 }
+
+export async function saveFooter(_: FormState, formData: FormData): Promise<FormState> {
+  const { supabase, user } = await currentUser();
+  const footer_style = String(formData.get("footer_style"));
+  if (footer_style !== "light" && footer_style !== "dark") return { error: "Pick light or dark." };
+  const footer_email = String(formData.get("footer_email") ?? "").trim();
+  if (footer_email && !/^\S+@\S+\.\S+$/.test(footer_email)) return { error: "That doesn't look like a valid email address." };
+  const on = (name: string) => formData.get(name) === "on";
+  const { error } = await supabase
+    .from("sites")
+    .update({
+      footer_match_header: on("footer_match_header"),
+      footer_style,
+      footer_show_logo: on("footer_show_logo"),
+      footer_show_name: on("footer_show_name"),
+      footer_show_copyright: on("footer_show_copyright"),
+      footer_show_nav: on("footer_show_nav"),
+      footer_show_email: on("footer_show_email"),
+      footer_email,
+    })
+    .eq("owner_id", user.id);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard");
+  return { ok: "Saved." };
+}

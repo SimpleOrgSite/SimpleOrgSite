@@ -12,6 +12,10 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/sit
 
   const logo = await logoUrl(site.logo_path);
   const dark = site.header_style === "dark";
+  const footerDark = (site.footer_match_header ? site.header_style : site.footer_style) === "dark";
+  const showEmail = site.footer_show_email && !!site.footer_email;
+  const hasFooter =
+    (site.footer_show_logo && !!logo) || (site.footer_show_name && !!site.site_name) || site.footer_show_nav || site.footer_show_copyright || showEmail;
   // About is one page; its dropdown jumps to each filled-in part of it.
   // Home is always first: not everyone knows the logo is a link.
   const nav: NavItem[] = [{ href: "/", label: "Home", children: [] }];
@@ -44,6 +48,40 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/sit
         </div>
       </header>
       <main className="flex-1">{children}</main>
+      {hasFooter && (
+        <footer
+          className={footerDark ? "" : "border-t border-gray-200"}
+          // Same rule as the header: dark = theme color background with white text; light = theme color text.
+          style={footerDark ? { backgroundColor: site.theme_color, color: "#fff" } : { color: site.theme_color }}
+        >
+          <div className="mx-auto max-w-6xl space-y-4 px-6 py-8">
+            {(site.footer_show_logo && logo) || site.footer_show_name || site.footer_show_nav ? (
+              <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-4">
+                <div className="flex items-center gap-3">
+                  {site.footer_show_logo && logo && (
+                    // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
+                    <img src={logo} alt="" className="h-8 w-auto max-w-[50vw] object-contain" />
+                  )}
+                  {site.footer_show_name && site.site_name && <span className="text-lg font-semibold">{site.site_name}</span>}
+                </div>
+                {site.footer_show_nav && (
+                  <nav className="flex flex-wrap gap-x-6 gap-y-2">
+                    {nav.map((item) => (
+                      <Link key={item.href} href={item.href} className="text-current opacity-75 transition-opacity hover:opacity-100">{item.label}</Link>
+                    ))}
+                  </nav>
+                )}
+              </div>
+            ) : null}
+            {(site.footer_show_copyright || showEmail) && (
+              <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-2 text-sm opacity-75">
+                <span>{site.footer_show_copyright && `© ${new Date().getFullYear()}${site.footer_show_name && site.site_name ? ` ${site.site_name}` : ""}`}</span>
+                {showEmail && <a href={`mailto:${site.footer_email}`} className="underline-offset-4 hover:underline">{site.footer_email}</a>}
+              </div>
+            )}
+          </div>
+        </footer>
+      )}
     </div>
   );
 }
