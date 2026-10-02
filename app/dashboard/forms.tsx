@@ -2,7 +2,9 @@
 
 import { useActionState, useState } from "react";
 import { logoHeight } from "@/lib/logo";
-import { addDomain, removeDomain, removeLogo, saveAbout, saveLogoSize, saveMessage, saveSiteName, uploadLogo, verifySite, type FormState } from "./actions";
+import { DIRECTOR_FIELDS, DIRECTOR_LAYOUTS, PHOTO_SHAPES, SHAPE_CLASSES, type DirectorLayout, type FieldLabels, type PhotoShape } from "@/lib/directors";
+import type { AboutSectionType } from "@/lib/site";
+import { addDomain, removeDomain, removeLogo, saveAbout, saveDirectorsSettings, saveLogoSize, saveMessage, saveSiteName, uploadLogo, verifySite, type FormState } from "./actions";
 
 function Feedback({ state }: { state: FormState }) {
   if (state?.error) return <p className="text-sm text-red-600">{state.error}</p>;
@@ -103,17 +105,80 @@ export function LogoForm({ logoUrl, logoSize }: { logoUrl: string | null; logoSi
   );
 }
 
-export function AboutForm({ enabled, content }: { enabled: boolean; content: string }) {
+export function AboutForm({ enabled, label, sections }: { enabled: boolean; label: string; sections: AboutSectionType[] }) {
   const [state, action, pending] = useActionState(saveAbout, null);
   return (
-    <form action={action} className="space-y-3">
+    <form action={action} className="space-y-4">
       <label className="flex items-center gap-2">
         <input type="checkbox" name="about_enabled" defaultChecked={enabled} />
-        Show “About Us” in my site&apos;s menu
+        Show this page in my site&apos;s menu
       </label>
-      <textarea name="about_content" defaultValue={content} rows={8} placeholder="Tell visitors who you are…" className="w-full rounded border p-2" />
+      <label className="block space-y-1">
+        <span className="text-sm text-gray-600">Menu and page title</span>
+        <input name="about_label" defaultValue={label} placeholder="About Us" className="w-full rounded border p-2" />
+      </label>
+      <p className="text-sm text-gray-600">Fill in any of these. Empty ones won&apos;t appear on your page.</p>
+      {sections.map((s) => (
+        <label key={s.key} className="block space-y-1">
+          <span className="font-medium">{s.label}</span>
+          <textarea name={`section_${s.key}`} defaultValue={s.content} rows={5} className="w-full rounded border p-2" />
+        </label>
+      ))}
       <Feedback state={state} />
-      <button disabled={pending} className={button}>{pending ? "Saving…" : "Save About Us"}</button>
+      <button disabled={pending} className={button}>{pending ? "Saving…" : "Save"}</button>
+    </form>
+  );
+}
+
+export function DirectorsSettingsForm({
+  enabled, label, labels, layout, shape,
+}: { enabled: boolean; label: string; labels: FieldLabels; layout: DirectorLayout; shape: PhotoShape }) {
+  const [state, action, pending] = useActionState(saveDirectorsSettings, null);
+  const [layoutChoice, setLayoutChoice] = useState(layout);
+  return (
+    <form action={action} className="space-y-4">
+      <label className="flex items-center gap-2">
+        <input type="checkbox" name="directors_enabled" defaultChecked={enabled} />
+        Show this page in my site&apos;s menu
+      </label>
+      <label className="block space-y-1">
+        <span className="text-sm text-gray-600">Menu and page title</span>
+        <input name="directors_label" defaultValue={label} placeholder="Directors" className="w-full rounded border p-2" />
+      </label>
+      <fieldset className="space-y-2">
+        <legend className="text-sm text-gray-600">How to show people</legend>
+        {DIRECTOR_LAYOUTS.map((l) => (
+          <label key={l.key} className="flex items-center gap-2">
+            <input type="radio" name="directors_layout" value={l.key} checked={layoutChoice === l.key} onChange={() => setLayoutChoice(l.key)} />
+            {l.label}
+          </label>
+        ))}
+      </fieldset>
+      {/* Hidden, not unmounted, so the chosen shape is still submitted with the "names only" layout. */}
+      <fieldset className={layoutChoice === "list" ? "hidden" : "space-y-2"}>
+        <legend className="text-sm text-gray-600">Photo shape</legend>
+        <div className="flex flex-wrap gap-4">
+          {PHOTO_SHAPES.map((s) => (
+            <label key={s.key} className="flex flex-col items-center gap-1 text-sm">
+              <span className={`w-12 bg-gray-300 ${SHAPE_CLASSES[s.key]}`} />
+              <span className="flex items-center gap-1">
+                <input type="radio" name="directors_photo_shape" value={s.key} defaultChecked={shape === s.key} />
+                {s.label}
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      <fieldset className="space-y-2">
+        <legend className="text-sm text-gray-600">What you call each field</legend>
+        <div className="grid grid-cols-2 gap-2">
+          {DIRECTOR_FIELDS.map((f) => (
+            <input key={f} name={`label_${f}`} defaultValue={labels[f]} aria-label={`Label for ${f}`} className="rounded border p-2" />
+          ))}
+        </div>
+      </fieldset>
+      <Feedback state={state} />
+      <button disabled={pending} className={button}>{pending ? "Saving…" : "Save"}</button>
     </form>
   );
 }

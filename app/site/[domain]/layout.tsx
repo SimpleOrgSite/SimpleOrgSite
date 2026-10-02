@@ -11,7 +11,10 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/sit
 
   const logo = await logoUrl(site.logo_path);
   // Sections show up here only when the owner has switched them on.
-  const nav = [site.about_enabled && { href: "/about", label: "About Us" }].filter(Boolean) as { href: string; label: string }[];
+  const nav = [
+    site.about_enabled && { href: "/about", label: site.about_label || "About Us" },
+    site.directors_enabled && { href: "/directors", label: site.directors_label || "Directors" },
+  ].filter(Boolean) as { href: string; label: string }[];
 
   // The marker lives in the layout so every page proves it was served by us.
   const marker = { [SITE_MARKER]: site.id };

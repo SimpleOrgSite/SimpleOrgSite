@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { dnsRecordsFor } from "@/lib/domain";
-import { logoUrl } from "@/lib/site";
+import { getAboutSections, getDirectors, logoUrl } from "@/lib/site";
 import { logout } from "../login/actions";
-import { AboutForm, AddDomainForm, LogoForm, MessageForm, SiteNameForm, RemoveDomainForm, VerifyForm } from "./forms";
+import Link from "next/link";
+import { fieldLabels } from "@/lib/directors";
+import { AboutForm, DirectorsSettingsForm, AddDomainForm, LogoForm, MessageForm, SiteNameForm, RemoveDomainForm, VerifyForm } from "./forms";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +16,8 @@ export default async function Dashboard() {
 
   const { data: site } = await supabase.from("sites").select("*").eq("owner_id", auth.user.id).maybeSingle();
 
+  const aboutSections = site ? await getAboutSections(site.id) : [];
+  const directors = site ? await getDirectors(site.id) : [];
   const logo = await logoUrl(site?.logo_path ?? null);
 
   return (
@@ -76,7 +80,24 @@ export default async function Dashboard() {
 
           <section className="space-y-3">
             <h2 className="text-lg font-medium">5. About Us</h2>
-            <AboutForm enabled={site.about_enabled} content={site.about_content} />
+            <AboutForm enabled={site.about_enabled} label={site.about_label} sections={aboutSections} />
+          </section>
+
+          <section className="space-y-3">
+            <h2 className="text-lg font-medium">6. {site.directors_label}</h2>
+            <DirectorsSettingsForm enabled={site.directors_enabled} label={site.directors_label} labels={fieldLabels(site.directors_field_labels)} layout={site.directors_layout} shape={site.directors_photo_shape} />
+            <ul className="divide-y rounded border">
+              {directors.map((d) => (
+                <li key={d.id}>
+                  <Link href={`/dashboard/directors/${d.id}`} className="flex justify-between p-3 hover:bg-gray-50">
+                    <span>{d.name}</span>
+                    <span className="text-sm text-gray-500">{d.title}</span>
+                  </Link>
+                </li>
+              ))}
+              {directors.length === 0 && <li className="p-3 text-sm text-gray-500">No one added yet.</li>}
+            </ul>
+            <Link href="/dashboard/directors/new" className="inline-block rounded bg-black px-4 py-2 text-white">Add person</Link>
           </section>
         </>
       )}
