@@ -7,7 +7,7 @@ import { button, dangerLink, file, input, label as labelText, tile } from "./ui"
 import { logoHeight } from "@/lib/logo";
 import { DIRECTOR_LAYOUTS, PHOTO_SHAPES, SHAPE_CLASSES, type DirectorLayout, type PhotoShape } from "@/lib/directors";
 import type { AboutSection } from "@/lib/site";
-import { addDomain, removeDomain, removeLogo, saveAbout, saveDirectorsSettings, saveLogoSize, saveMessage, saveSiteName, uploadLogo, verifySite, type FormState } from "./actions";
+import { addDomain, removeDomain, removeLogo, saveAbout, saveDirectorsSettings, saveHeaderStyle, saveLogoSize, saveMessage, saveSiteName, uploadLogo, verifySite, type FormState } from "./actions";
 
 function Feedback({ state }: { state: FormState }) {
   if (state?.error) return <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>;
@@ -224,6 +224,74 @@ export function DirectorsSettingsForm({
       </fieldset>
       <Feedback state={state} />
       <button disabled={pending} className={button}>{pending ? "Saving…" : "Save"}</button>
+    </form>
+  );
+}
+
+const THEME_COLORS = ["#1f2937", "#2563eb", "#0f766e", "#16a34a", "#dc2626", "#ea580c", "#7c3aed", "#db2777"];
+
+export function HeaderStyleForm({
+  style: initialStyle, color: initialColor, siteName, logoUrl, logoSize,
+}: { style: "light" | "dark"; color: string; siteName: string; logoUrl: string | null; logoSize: number }) {
+  const [state, action, pending] = useActionState(saveHeaderStyle, null);
+  const [style, setStyle] = useState(initialStyle);
+  const [color, setColor] = useState(initialColor);
+  const dark = style === "dark";
+  return (
+    <form action={action} className="space-y-5">
+      {/* Mini header so the choice can be judged before saving. */}
+      <div
+        className={`flex items-center justify-between rounded-xl px-5 py-3 ${dark ? "" : "border border-gray-200 bg-white"}`}
+        style={dark ? { backgroundColor: color, color: "#fff" } : { color }}
+      >
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
+          <img src={logoUrl} alt="" style={{ height: Math.min(logoHeight(logoSize), 40) }} className="w-auto max-w-[50%] object-contain" />
+        ) : (
+          <span className="text-lg font-bold">{siteName || "Your site"}</span>
+        )}
+        <span className="flex gap-6 text-sm opacity-80"><span>Home</span><span>About</span></span>
+      </div>
+
+      <fieldset className="space-y-2">
+        <legend className={`${labelText} mb-2`}>Header style</legend>
+        <div className="grid grid-cols-2 gap-2">
+          {([["light", "Light", "White background, text in your theme color"], ["dark", "Dark", "Your theme color background, white text"]] as const).map(([value, name, hint]) => (
+            <label key={value} className={`${tile} items-start`}>
+              <input type="radio" name="header_style" value={value} checked={style === value} onChange={() => setStyle(value)} className="mt-1 accent-gray-900" />
+              <span>
+                <span className="block font-medium">{name}</span>
+                <span className="block text-sm text-gray-500">{hint}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <fieldset className="space-y-2">
+        <legend className={`${labelText} mb-2`}>Theme color</legend>
+        <input type="hidden" name="theme_color" value={color} />
+        <div className="flex flex-wrap items-center gap-2.5">
+          {THEME_COLORS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              aria-label={`Theme color ${c}`}
+              onClick={() => setColor(c)}
+              className={`h-8 w-8 rounded-full ring-offset-2 transition hover:scale-110 ${color === c ? "ring-2 ring-gray-900" : ""}`}
+              style={{ backgroundColor: c }}
+            />
+          ))}
+          <label className="ml-2 flex cursor-pointer items-center gap-2 text-sm text-gray-600">
+            <input type="color" value={color} onChange={(e) => setColor(e.target.value)} className="h-8 w-8 cursor-pointer rounded-full border-0 bg-transparent p-0" />
+            Custom
+          </label>
+        </div>
+        {dark && <p className="text-xs text-gray-500">Text is white on a dark header, so pick a darker color.</p>}
+      </fieldset>
+
+      <Feedback state={state} />
+      <button disabled={pending} className={button}>{pending ? "Saving…" : "Save header style"}</button>
     </form>
   );
 }

@@ -231,3 +231,15 @@ export async function deleteDirector(id: string) {
   revalidatePath("/dashboard");
   redirect("/dashboard?tab=about");
 }
+
+export async function saveHeaderStyle(_: FormState, formData: FormData): Promise<FormState> {
+  const { supabase, user } = await currentUser();
+  const header_style = String(formData.get("header_style"));
+  const theme_color = String(formData.get("theme_color"));
+  if (header_style !== "light" && header_style !== "dark") return { error: "Pick light or dark." };
+  if (!/^#[0-9a-f]{6}$/i.test(theme_color)) return { error: "Pick a valid color." };
+  const { error } = await supabase.from("sites").update({ header_style, theme_color: theme_color.toLowerCase() }).eq("owner_id", user.id);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard");
+  return { ok: "Saved." };
+}

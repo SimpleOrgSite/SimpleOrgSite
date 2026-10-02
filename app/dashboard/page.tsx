@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { dnsRecordsFor } from "@/lib/domain";
 import { getAboutSections, getDirectors, logoUrl } from "@/lib/site";
 import { logout } from "../login/actions";
-import { AboutForm, AddDomainForm, DirectorsSettingsForm, LogoForm, MessageForm, RemoveDomainForm, SiteNameForm, VerifyForm } from "./forms";
+import { AboutForm, AddDomainForm, DirectorsSettingsForm, HeaderStyleForm, LogoForm, MessageForm, RemoveDomainForm, SiteNameForm, VerifyForm } from "./forms";
 import { buttonSecondary } from "./ui";
 
 export const dynamic = "force-dynamic";
@@ -123,6 +123,9 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
                 </Card>
                 <Card title="Logo" description="Appears at the top left of every page.">
                   <LogoForm logoUrl={logo} logoSize={site.logo_size} />
+                </Card>
+                <Card title="Header style" description="Light or dark, and the theme color that goes with it.">
+                  <HeaderStyleForm style={site.header_style} color={site.theme_color} siteName={site.site_name} logoUrl={logo} logoSize={site.logo_size} />
                 </Card>
                 <Card title="Site name" description="Shown in the header when you have no logo.">
                   <SiteNameForm siteName={site.site_name} />
