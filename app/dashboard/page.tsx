@@ -2,7 +2,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { dnsRecordsFor } from "@/lib/domain";
-import { fieldLabels } from "@/lib/directors";
 import { getAboutSections, getDirectors, logoUrl } from "@/lib/site";
 import { logout } from "../login/actions";
 import { AboutForm, AddDomainForm, DirectorsSettingsForm, LogoForm, MessageForm, RemoveDomainForm, SiteNameForm, VerifyForm } from "./forms";
@@ -161,7 +160,6 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
                     <DirectorsSettingsForm
                       enabled={site.directors_enabled}
                       label={site.directors_label}
-                      labels={fieldLabels(site.directors_field_labels)}
                       layout={site.directors_layout}
                       shape={site.directors_photo_shape}
                     />

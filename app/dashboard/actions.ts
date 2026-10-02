@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { hasText, sanitizeRichText } from "@/lib/richtext";
-import { DEFAULT_FIELD_LABELS, DIRECTOR_FIELDS, DIRECTOR_LAYOUTS, PHOTO_SHAPES, type FieldLabels } from "@/lib/directors";
+import { DIRECTOR_LAYOUTS, PHOTO_SHAPES } from "@/lib/directors";
 import { createClient } from "@/lib/supabase/server";
 import { addDomainToVercel, checkDomain, isValidDomain, normalizeDomain, removeDomainFromVercel } from "@/lib/domain";
 
@@ -155,8 +155,6 @@ export async function saveLogoSize(_: FormState, formData: FormData): Promise<Fo
 
 export async function saveDirectorsSettings(_: FormState, formData: FormData): Promise<FormState> {
   const { supabase, user } = await currentUser();
-  const labels = {} as FieldLabels;
-  for (const f of DIRECTOR_FIELDS) labels[f] = String(formData.get(`label_${f}`) ?? "").trim() || DEFAULT_FIELD_LABELS[f];
   const layout = String(formData.get("directors_layout"));
   const shape = String(formData.get("directors_photo_shape"));
   if (!DIRECTOR_LAYOUTS.some((l) => l.key === layout) || !PHOTO_SHAPES.some((s) => s.key === shape)) {
@@ -169,7 +167,6 @@ export async function saveDirectorsSettings(_: FormState, formData: FormData): P
       directors_photo_shape: shape,
       directors_enabled: formData.get("directors_enabled") === "on",
       directors_label: String(formData.get("directors_label")).trim() || "Directors",
-      directors_field_labels: labels,
     })
     .eq("owner_id", user.id);
   if (error) return { error: error.message };

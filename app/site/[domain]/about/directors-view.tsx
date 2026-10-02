@@ -102,7 +102,8 @@ export function DirectorsView({ directors, layout, shape }: { directors: Directo
               setIndex(directors.indexOf(d));
               dialog.current?.showModal();
             }}
-            className="cursor-pointer space-y-3 text-left"
+            // Buttons center their content vertically by default, which made photos drift when names wrapped; flex-col pins them to the top.
+            className="flex cursor-pointer flex-col gap-3 text-left"
           >
             <Photo d={d} shape={shape} />
             <Heading d={d} center />

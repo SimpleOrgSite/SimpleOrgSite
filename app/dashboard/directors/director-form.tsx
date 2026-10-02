@@ -2,30 +2,30 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import type { Director, FieldLabels } from "@/lib/directors";
+import type { Director } from "@/lib/directors";
 import { button, dangerLink, file, input, label } from "../ui";
 import { deleteDirector, saveDirector, type FormState } from "../actions";
 
 
-export function DirectorForm({ director, labels, photoUrl }: { director: Director | null; labels: FieldLabels; photoUrl: string | null }) {
+export function DirectorForm({ director, photoUrl }: { director: Director | null; photoUrl: string | null }) {
   const [state, action, pending] = useActionState(saveDirector.bind(null, director?.id ?? null), null as FormState);
   return (
     <>
       <form action={action} className="space-y-4">
         <label className="block space-y-1">
-          <span className={label}>{labels.name}</span>
+          <span className={label}>Name</span>
           <input name="name" defaultValue={director?.name} required className={input} />
         </label>
         <label className="block space-y-1">
-          <span className={label}>{labels.title}</span>
+          <span className={label}>Title</span>
           <input name="title" defaultValue={director?.title} className={input} />
         </label>
         <label className="block space-y-1">
-          <span className={label}>{labels.affiliation}</span>
+          <span className={label}>Affiliation</span>
           <input name="affiliation" defaultValue={director?.affiliation} className={input} />
         </label>
         <div className="space-y-2">
-          <span className={label}>{labels.photo}</span>
+          <span className={label}>Photo</span>
           {photoUrl && (
             // eslint-disable-next-line @next/next/no-img-element -- user-uploaded
             <img src={photoUrl} alt="" className="h-24 w-24 rounded-2xl object-cover" />
@@ -38,11 +38,11 @@ export function DirectorForm({ director, labels, photoUrl }: { director: Directo
           )}
         </div>
         <label className="block space-y-1">
-          <span className={label}>{labels.bio}</span>
+          <span className={label}>Bio</span>
           <textarea name="bio" defaultValue={director?.bio} rows={6} className={input} />
         </label>
         <label className="block space-y-1">
-          <span className={label}>{labels.email}</span>
+          <span className={label}>Email</span>
           <input type="email" name="email" defaultValue={director?.email} className={input} />
         </label>
         {state?.error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>}

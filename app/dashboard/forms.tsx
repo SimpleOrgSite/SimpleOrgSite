@@ -5,7 +5,7 @@ import { Icon } from "./icons";
 import { RichEditor } from "./rich-editor";
 import { button, dangerLink, file, input, label as labelText, tile } from "./ui";
 import { logoHeight } from "@/lib/logo";
-import { DEFAULT_FIELD_LABELS, DIRECTOR_FIELDS, DIRECTOR_LAYOUTS, PHOTO_SHAPES, SHAPE_CLASSES, type DirectorLayout, type FieldLabels, type PhotoShape } from "@/lib/directors";
+import { DIRECTOR_LAYOUTS, PHOTO_SHAPES, SHAPE_CLASSES, type DirectorLayout, type PhotoShape } from "@/lib/directors";
 import type { AboutSection } from "@/lib/site";
 import { addDomain, removeDomain, removeLogo, saveAbout, saveDirectorsSettings, saveLogoSize, saveMessage, saveSiteName, uploadLogo, verifySite, type FormState } from "./actions";
 
@@ -184,8 +184,8 @@ export function AboutForm({ enabled, label, sections: initial }: { enabled: bool
 }
 
 export function DirectorsSettingsForm({
-  enabled, label, labels, layout, shape,
-}: { enabled: boolean; label: string; labels: FieldLabels; layout: DirectorLayout; shape: PhotoShape }) {
+  enabled, label, layout, shape,
+}: { enabled: boolean; label: string; layout: DirectorLayout; shape: PhotoShape }) {
   const [state, action, pending] = useActionState(saveDirectorsSettings, null);
   const [layoutChoice, setLayoutChoice] = useState(layout);
   return (
@@ -218,17 +218,6 @@ export function DirectorsSettingsForm({
                 <input type="radio" name="directors_photo_shape" value={s.key} defaultChecked={shape === s.key} className="accent-gray-900" />
                 {s.label}
               </span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
-      <fieldset className="space-y-2">
-        <legend className={`${labelText} mb-2`}>What you call each field</legend>
-        <div className="grid grid-cols-2 gap-3">
-          {DIRECTOR_FIELDS.map((f) => (
-            <label key={f} className="space-y-1">
-              <span className="text-xs text-gray-500">{DEFAULT_FIELD_LABELS[f]}</span>
-              <input name={`label_${f}`} defaultValue={labels[f]} className={input} />
             </label>
           ))}
         </div>

@@ -1,5 +1,5 @@
 import { cache } from "react";
-import type { Director, DirectorLayout, FieldLabels, PhotoShape } from "@/lib/directors";
+import type { Director, DirectorLayout, PhotoShape } from "@/lib/directors";
 import { hasText } from "@/lib/richtext";
 import { createClient } from "@/lib/supabase/server";
 
@@ -13,7 +13,6 @@ export type Site = {
   about_label: string;
   directors_enabled: boolean;
   directors_label: string;
-  directors_field_labels: Partial<FieldLabels>;
   directors_layout: DirectorLayout;
   directors_photo_shape: PhotoShape;
 };
@@ -22,7 +21,7 @@ export const getSite = cache(async (domain: string): Promise<Site | null> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("sites")
-    .select("id, site_name, logo_path, logo_size, message, about_enabled, about_label, directors_enabled, directors_label, directors_field_labels, directors_layout, directors_photo_shape")
+    .select("id, site_name, logo_path, logo_size, message, about_enabled, about_label, directors_enabled, directors_label, directors_layout, directors_photo_shape")
     .eq("domain", decodeURIComponent(domain).toLowerCase())
     .maybeSingle();
   return data;
