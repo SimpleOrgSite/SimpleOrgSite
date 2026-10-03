@@ -17,8 +17,8 @@ export default async function NewsPage({ params }: PageProps<"/site/[domain]/new
         <h1 className="text-3xl font-semibold">{site.news_label || "News"}</h1>
       </div>
       <section className="border-t border-gray-200 bg-gradient-to-b from-slate-50 to-white">
-        <div className="mx-auto max-w-3xl px-6 py-12">
-          <NewsFeed items={items} />
+        <div className={`mx-auto px-6 py-12 ${site.news_layout === "featured" ? "max-w-5xl" : "max-w-3xl"}`}>
+          <NewsFeed items={items} layout={site.news_layout} />
         </div>
       </section>
     </div>

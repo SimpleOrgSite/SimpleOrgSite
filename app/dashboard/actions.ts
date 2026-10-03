@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { normalizeLink, normalizeTags } from "@/lib/news";
+import { NEWS_LAYOUTS, normalizeDate, normalizeLink, normalizeTags } from "@/lib/news";
 import { hasText, sanitizeRichText } from "@/lib/richtext";
 import { DIRECTOR_LAYOUTS, PHOTO_SHAPES } from "@/lib/directors";
 import { createClient } from "@/lib/supabase/server";
@@ -278,6 +278,7 @@ export async function saveNewsSettings(_: FormState, formData: FormData): Promis
     .update({
       news_enabled: formData.get("news_enabled") === "on",
       news_label: String(formData.get("news_label")).trim() || "News",
+      news_layout: NEWS_LAYOUTS.find((l) => l.key === formData.get("news_layout"))?.key ?? "full",
     })
     .eq("owner_id", user.id);
   if (error) return { error: error.message };
@@ -301,6 +302,7 @@ export async function saveNewsItem(id: string | null, _: FormState, formData: Fo
     link,
     tags: normalizeTags(formData.getAll("tag").map(String)),
     visible: formData.get("visible") === "on",
+    published_on: normalizeDate(String(formData.get("published_on") ?? "")),
   };
 
   if (id) {

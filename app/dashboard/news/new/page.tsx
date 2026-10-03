@@ -20,7 +20,7 @@ export default async function NewStory() {
         <Link href="/dashboard?tab=news" className="text-sm text-gray-500 transition hover:text-gray-900">← Back</Link>
         <h1 className="text-2xl font-semibold">Add to {site.news_label}</h1>
         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5">
-          <NewsForm item={null} tagSuggestions={allTags(items ?? [])} />
+          <NewsForm item={null} tagSuggestions={allTags(items ?? [])} today={new Date().toISOString().slice(0, 10)} />
         </div>
       </main>
     </div>

@@ -41,7 +41,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
   const aboutSections = site ? await getAboutSections(site.id) : [];
   const directors = site ? await getDirectors(site.id) : [];
   const { data: newsRows } = site
-    ? await supabase.from("news_items").select("id, name, story, link, tags, visible").eq("site_id", site.id).order("sort_order").order("created_at", { ascending: false })
+    ? await supabase.from("news_items").select("id, name, story, link, tags, visible, published_on").eq("site_id", site.id).order("sort_order").order("created_at", { ascending: false })
     : { data: null };
   const logo = await logoUrl(site?.logo_path ?? null);
 
@@ -144,7 +144,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
             {tab === "news" && (
               <>
                 <Card title="News page" description="A page of stories your visitors can search and filter by tag.">
-                  <NewsSettingsForm enabled={site.news_enabled} label={site.news_label} />
+                  <NewsSettingsForm enabled={site.news_enabled} label={site.news_label} layout={site.news_layout} />
                 </Card>
                 <Card
                   title="Stories"

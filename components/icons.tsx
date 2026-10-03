@@ -14,6 +14,7 @@ const PATHS = {
   search: ["M3 10a7 7 0 1 0 14 0a7 7 0 1 0 -14 0", "M21 21l-6 -6"],
   x: ["M18 6l-12 12", "M6 6l12 12"],
   "arrow-right": ["M5 12l14 0", "M13 18l6 -6", "M13 6l6 6"],
+  "chevron-down": ["M6 9l6 6l6 -6"],
   plus: ["M12 5l0 14", "M5 12l14 0"],
 } as const;
 

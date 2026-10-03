@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { Icon } from "@/components/icons";
+import { NEWS_LAYOUTS, type NewsLayout } from "@/lib/news";
 import { RichEditor } from "./rich-editor";
 import { button, dangerLink, file, input, label as labelText, tile } from "./ui";
 import { logoHeight } from "@/lib/logo";
@@ -385,7 +386,7 @@ export function FooterForm({
   );
 }
 
-export function NewsSettingsForm({ enabled, label }: { enabled: boolean; label: string }) {
+export function NewsSettingsForm({ enabled, label, layout }: { enabled: boolean; label: string; layout: NewsLayout }) {
   const [state, action, pending] = useActionState(saveNewsSettings, null);
   return (
     <form action={action} className="space-y-4">
@@ -397,6 +398,18 @@ export function NewsSettingsForm({ enabled, label }: { enabled: boolean; label: 
         <span className={labelText}>Menu and page title</span>
         <input name="news_label" defaultValue={label} placeholder="News" className={input} />
       </label>
+      <fieldset className="space-y-2">
+        <legend className={`${labelText} mb-2`}>How to show stories</legend>
+        {NEWS_LAYOUTS.map((l) => (
+          <label key={l.key} className={`${tile} items-start`}>
+            <input type="radio" name="news_layout" value={l.key} defaultChecked={layout === l.key} className="mt-1 accent-gray-900" />
+            <span>
+              <span className="block font-medium">{l.label}</span>
+              <span className="block text-sm text-gray-500">{l.hint}</span>
+            </span>
+          </label>
+        ))}
+      </fieldset>
       <Feedback state={state} />
       <button disabled={pending} className={button}>{pending ? "Saving…" : "Save"}</button>
     </form>

@@ -8,7 +8,7 @@ import { RichEditor } from "../rich-editor";
 import { button, dangerLink, input, label, tile } from "../ui";
 import { TagInput } from "./tag-input";
 
-export function NewsForm({ item, tagSuggestions }: { item: NewsItem | null; tagSuggestions: string[] }) {
+export function NewsForm({ item, tagSuggestions, today }: { item: NewsItem | null; tagSuggestions: string[]; today: string }) {
   const [state, action, pending] = useActionState(saveNewsItem.bind(null, item?.id ?? null), null as FormState);
   const [story, setStory] = useState(item?.story ?? "");
   return (
@@ -23,6 +23,10 @@ export function NewsForm({ item, tagSuggestions }: { item: NewsItem | null; tagS
           <input type="hidden" name="story" value={story} />
           <RichEditor initial={item?.story ?? ""} onChange={setStory} />
         </div>
+        <label className="block space-y-1">
+          <span className={label}>Date</span>
+          <input type="date" name="published_on" defaultValue={item ? (item.published_on ?? "") : today} className={`${input} sm:w-56`} />
+        </label>
         <label className="block space-y-1">
           <span className={label}>Link</span>
           <input name="link" defaultValue={item?.link} placeholder="https://example.com/the-full-story (optional)" className={input} />
