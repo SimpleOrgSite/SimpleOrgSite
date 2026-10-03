@@ -212,16 +212,18 @@ function Stats({ block }: { block: HomeBlock }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.value || i.label);
   if (items.length === 0) return null;
+  // Same rule as the header: dark = theme color background with white text; light = white background with theme-colored text.
+  const dark = configText(c, "style") !== "light";
   return (
-    <section className="text-white" style={{ backgroundColor: THEME }}>
+    <section className={dark ? "" : "border-y border-gray-200"} style={dark ? { backgroundColor: THEME, color: "#fff" } : { color: THEME }}>
       <div className="mx-auto max-w-5xl space-y-8 px-6 py-14">
         {configText(c, "heading") && <h2 className="text-center text-2xl font-semibold sm:text-3xl">{configText(c, "heading")}</h2>}
         <dl className="flex flex-wrap justify-center gap-x-16 gap-y-8">
           {items.map((i, n) => (
             <div key={n} className="flex min-w-36 flex-col-reverse text-center">
-              <dt className="mt-1 text-white/80">{i.label}</dt>
+              <dt className="mt-1 text-lg opacity-80">{i.label}</dt>
               <dd className="text-5xl font-bold">
-                {i.icon && <span className="mx-auto mb-4 block w-fit text-white/90"><LibraryIcon name={i.icon} className="h-11 w-11" strokeWidth={1.5} /></span>}
+                {i.icon && <span className="mx-auto mb-4 block w-fit opacity-90"><LibraryIcon name={i.icon} className="h-11 w-11" strokeWidth={1.5} /></span>}
                 <CountUp value={i.value} />
               </dd>
             </div>

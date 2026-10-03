@@ -112,9 +112,10 @@ export const BLOCK_TYPES = [
     hint: "Big numbers like “400+ children served”",
     fields: [
       { key: "heading", label: "Heading (optional)", kind: "text" },
+      { key: "style", label: "Style", kind: "choice", options: [{ value: "dark", label: "Dark (theme color background)" }, { value: "light", label: "Light (white background)" }] },
       { key: "items", label: "Stats", kind: "list", itemLabel: "stat", max: 6, fields: [{ key: "icon", label: "Icon (optional)", kind: "icon" }, { key: "value", label: "Number", kind: "text", placeholder: "400+" }, { key: "label", label: "Label", kind: "text", placeholder: "Children served" }] },
     ],
-    defaults: { heading: "", items: [{ value: "12", label: "Years serving families" }, { value: "400+", label: "Children served" }, { value: "98%", label: "Parent satisfaction" }] },
+    defaults: { heading: "", style: "dark", items: [{ value: "12", label: "Years serving families" }, { value: "400+", label: "Children served" }, { value: "98%", label: "Parent satisfaction" }] },
   },
   {
     type: "testimonials",
