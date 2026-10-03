@@ -24,7 +24,7 @@ export type BlockField = Field;
 
 const buttonFields: Field[] = [
   { key: "primary_label", label: "Main button text", kind: "text", placeholder: "Request an intake" },
-  { key: "primary_link", label: "Main button link", kind: "link", placeholder: "/contact, tel:5551234567, or https://…" },
+  { key: "primary_link", label: "Main button link", kind: "link", placeholder: "https://…, tel:5551234567 or name@example.com" },
   { key: "secondary_label", label: "Second button text", kind: "text", placeholder: "Call us" },
   { key: "secondary_link", label: "Second button link", kind: "link", placeholder: "tel:5551234567" },
 ];
@@ -37,7 +37,7 @@ export const BLOCK_TYPES = [
     fields: [
       { key: "text", label: "Message", kind: "text", placeholder: "Now accepting new clients in Travis County" },
       { key: "link_label", label: "Link text", kind: "text", placeholder: "Learn more" },
-      { key: "link", label: "Link", kind: "link", placeholder: "https://… (optional)" },
+      { key: "link", label: "Link", kind: "link", placeholder: "https://…" },
       { key: "style", label: "Style", kind: "choice", options: [{ value: "theme", label: "Theme color" }, { value: "light", label: "Soft tint" }] },
     ],
     defaults: { text: "Now accepting new clients", link_label: "Learn more", link: "", style: "theme" },
@@ -91,7 +91,7 @@ export const BLOCK_TYPES = [
       { key: "subhead", label: "Subheading", kind: "text", placeholder: "We work with most major plans, including Medicaid." },
       { key: "items", label: "Plans", kind: "list", itemLabel: "plan", max: 16, hint: "Add a logo, or just a name to show as text.", fields: [{ key: "name", label: "Plan name", kind: "text", placeholder: "Aetna" }, { key: "logo", label: "Logo", kind: "image" }] },
       { key: "link_label", label: "Button text", kind: "text", placeholder: "Verify my coverage" },
-      { key: "link", label: "Button link", kind: "link", placeholder: "/contact or https://…" },
+      { key: "link", label: "Button link", kind: "link", placeholder: "https://… or tel:5551234567" },
     ],
     defaults: { heading: "Insurance we accept", subhead: "We work with most major plans, including Medicaid.", items: [{ name: "Medicaid" }, { name: "Aetna" }, { name: "Blue Cross Blue Shield" }, { name: "Cigna" }], link_label: "Verify my coverage", link: "" },
   },

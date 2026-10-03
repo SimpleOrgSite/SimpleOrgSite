@@ -110,3 +110,19 @@ export const getHomeBlocks = cache(async (siteId: string): Promise<HomeBlock[]> 
     .order("created_at");
   return data ?? [];
 });
+
+export type PageLink = { href: string; label: string };
+
+// Every internal destination a button can point to: the pages that are switched on, plus each About section.
+// Safe to extend: new pages (contact, etc.) just add entries here.
+export async function sitePageLinks(site: Pick<Site, "id" | "about_enabled" | "about_label" | "directors_enabled" | "directors_label" | "news_enabled" | "news_label">): Promise<PageLink[]> {
+  const links: PageLink[] = [{ href: "/", label: "Home" }];
+  if (site.about_enabled) {
+    const about = site.about_label || "About Us";
+    links.push({ href: "/about", label: about });
+    for (const s of (await getAboutSections(site.id)).filter(isVisible)) links.push({ href: `/about#${s.anchor}`, label: `${about} › ${s.title}` });
+    if (site.directors_enabled && (await getDirectors(site.id)).length > 0) links.push({ href: "/about#directors", label: `${about} › ${site.directors_label || "Directors"}` });
+  }
+  if (site.news_enabled) links.push({ href: "/news", label: site.news_label || "News" });
+  return links;
+}

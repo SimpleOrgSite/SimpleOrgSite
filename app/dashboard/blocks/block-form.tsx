@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 import { Icon } from "@/components/icons";
 import { ACTION_ICONS, MAX_ACTIONS, configItems, configList, configText, type BlockField, type HomeBlock } from "@/lib/blocks";
+import type { PageLink } from "@/lib/site";
 import { deleteBlock, saveBlock, toggleBlock, type FormState } from "../actions";
 import { button, dangerLink, file, input, label, tile } from "../ui";
 
@@ -28,6 +29,28 @@ function ImageInput({ name, path, urls, hint }: { name: string; path: string; ur
       )}
       <input type="file" name={name} accept="image/png,image/jpeg,image/webp,image/svg+xml" className={file} />
       {hint !== undefined && <p className="text-xs text-gray-500">{hint}</p>}
+    </div>
+  );
+}
+
+const CUSTOM = "__custom";
+
+// Pick one of the site's own pages or sections, or type any other link. Submits a single value under "name".
+function LinkInput({ name, defaultValue, pages, placeholder, label: ariaLabel }: { name: string; defaultValue: string; pages: PageLink[]; placeholder?: string; label?: string }) {
+  const known = pages.some((p) => p.href === defaultValue);
+  const [choice, setChoice] = useState(known ? defaultValue : defaultValue ? CUSTOM : "");
+  const [custom, setCustom] = useState(known ? "" : defaultValue);
+  return (
+    <div className="space-y-2">
+      <input type="hidden" name={name} value={choice === CUSTOM ? custom : choice} />
+      <select value={choice} onChange={(e) => setChoice(e.target.value)} aria-label={ariaLabel} className={input}>
+        <option value="">No link</option>
+        <optgroup label="Pages on your site">
+          {pages.map((p) => <option key={p.href} value={p.href}>{p.label}</option>)}
+        </optgroup>
+        <option value={CUSTOM}>Web address, phone or email…</option>
+      </select>
+      {choice === CUSTOM && <input value={custom} onChange={(e) => setCustom(e.target.value)} placeholder={placeholder ?? "https://…, tel:5551234567 or name@example.com"} aria-label={ariaLabel ? `${ariaLabel} address` : undefined} className={input} />}
     </div>
   );
 }
@@ -89,7 +112,7 @@ function ListField({ field, initial, urls }: { field: Extract<BlockField, { kind
 }
 
 // Renders whatever fields the block type declares in lib/blocks.ts.
-export function BlockForm({ block, fields, urls }: { block: HomeBlock; fields: readonly BlockField[]; urls: Record<string, string> }) {
+export function BlockForm({ block, fields, urls, pages }: { block: HomeBlock; fields: readonly BlockField[]; urls: Record<string, string>; pages: PageLink[] }) {
   const [state, action, pending] = useActionState(saveBlock.bind(null, block.id), null as FormState);
   const c = block.config;
   return (
@@ -106,10 +129,10 @@ export function BlockForm({ block, fields, urls }: { block: HomeBlock; fields: r
           }
           if (f.kind === "link") {
             return (
-              <label key={f.key} className="block space-y-1">
+              <div key={f.key} className="space-y-1">
                 <span className={label}>{f.label}</span>
-                <input name={f.key} defaultValue={configText(c, f.key)} placeholder={f.placeholder} className={input} />
-              </label>
+                <LinkInput name={f.key} defaultValue={configText(c, f.key)} pages={pages} placeholder={f.placeholder} label={f.label} />
+              </div>
             );
           }
           if (f.kind === "textarea") {
@@ -155,10 +178,10 @@ export function BlockForm({ block, fields, urls }: { block: HomeBlock; fields: r
                     {ACTION_ICONS.map((n) => <option key={n} value={n}>{n.replace(/-/g, " ")}</option>)}
                   </select>
                   <input name={`item_label_${i}`} defaultValue={items[i]?.label ?? ""} placeholder="Button text" aria-label={`Button ${i + 1} text`} className={input} />
-                  <input name={`item_link_${i}`} defaultValue={items[i]?.link ?? ""} placeholder="Link" aria-label={`Button ${i + 1} link`} className={input} />
+                  <LinkInput name={`item_link_${i}`} defaultValue={items[i]?.link ?? ""} pages={pages} label={`Button ${i + 1} link`} />
                 </div>
               ))}
-              <p className="text-xs text-gray-500">Leave the text empty to skip a button. Links can be a web address, a page like /about, or tel: and mailto: links.</p>
+              <p className="text-xs text-gray-500">Leave the text empty to skip a button. Each button can link to one of your pages or sections, or to any web address, phone number or email.</p>
             </fieldset>
           );
         })}
