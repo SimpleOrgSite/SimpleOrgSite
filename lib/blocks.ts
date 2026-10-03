@@ -11,8 +11,12 @@ export type HomeBlock = { id: string; type: BlockType; enabled: boolean; config:
 export const ACTION_ICONS = ["phone", "mail", "calendar-event", "clipboard-check", "shield-check", "heart-handshake", "users", "book", "briefcase", "file-text", "map-pin", "home", "star", "message-circle", "school", "puzzle", "heart"] as const satisfies readonly IconName[];
 export const MAX_ACTIONS = 4;
 
+// One repeatable row inside a "list" field. An image sub-field "logo" is stored as "logo_path".
+export type ListSub = { key: string; label: string; kind: "text" | "textarea" | "image"; placeholder?: string };
+
 type Field =
   | { key: string; label: string; kind: "text" | "textarea" | "link"; placeholder?: string; hint?: string }
+  | { key: string; label: string; kind: "list"; itemLabel: string; max: number; fields: readonly ListSub[]; hint?: string }
   | { key: string; label: string; kind: "image"; hint?: string }
   | { key: string; label: string; kind: "choice"; options: readonly { value: string; label: string }[] }
   | { key: string; label: string; kind: "actions" };
@@ -78,12 +82,80 @@ export const BLOCK_TYPES = [
       ] satisfies ActionItem[],
     },
   },
+  {
+    type: "insurance",
+    label: "Insurance & funding",
+    hint: "Logos of accepted plans, with a “verify my coverage” button",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Insurance we accept" },
+      { key: "subhead", label: "Subheading", kind: "text", placeholder: "We work with most major plans, including Medicaid." },
+      { key: "items", label: "Plans", kind: "list", itemLabel: "plan", max: 16, hint: "Add a logo, or just a name to show as text.", fields: [{ key: "name", label: "Plan name", kind: "text", placeholder: "Aetna" }, { key: "logo", label: "Logo", kind: "image" }] },
+      { key: "link_label", label: "Button text", kind: "text", placeholder: "Verify my coverage" },
+      { key: "link", label: "Button link", kind: "link", placeholder: "/contact or https://…" },
+    ],
+    defaults: { heading: "Insurance we accept", subhead: "We work with most major plans, including Medicaid.", items: [{ name: "Medicaid" }, { name: "Aetna" }, { name: "Blue Cross Blue Shield" }, { name: "Cigna" }], link_label: "Verify my coverage", link: "" },
+  },
+  {
+    type: "credentials",
+    label: "Credentials & accreditations",
+    hint: "Badges for licensure, certifications and memberships",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Licensed, certified, accredited" },
+      { key: "items", label: "Badges", kind: "list", itemLabel: "badge", max: 12, fields: [{ key: "name", label: "Name", kind: "text", placeholder: "BACB Certified" }, { key: "logo", label: "Badge image", kind: "image" }] },
+    ],
+    defaults: { heading: "Licensed, certified, accredited", items: [{ name: "BACB certified supervisors" }, { name: "HIPAA compliant" }, { name: "State licensed" }] },
+  },
+  {
+    type: "stats",
+    label: "Stats row",
+    hint: "Big numbers like “400+ children served”",
+    fields: [
+      { key: "heading", label: "Heading (optional)", kind: "text" },
+      { key: "items", label: "Stats", kind: "list", itemLabel: "stat", max: 6, fields: [{ key: "value", label: "Number", kind: "text", placeholder: "400+" }, { key: "label", label: "Label", kind: "text", placeholder: "Children served" }] },
+    ],
+    defaults: { heading: "", items: [{ value: "12", label: "Years serving families" }, { value: "400+", label: "Children served" }, { value: "98%", label: "Parent satisfaction" }] },
+  },
+  {
+    type: "testimonials",
+    label: "Testimonials",
+    hint: "Several parent quotes, as a grid or a swipeable row",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "What parents say" },
+      { key: "layout", label: "Layout", kind: "choice", options: [{ value: "grid", label: "Grid" }, { value: "scroll", label: "Swipeable row" }] },
+      { key: "items", label: "Quotes", kind: "list", itemLabel: "quote", max: 12, fields: [{ key: "quote", label: "Quote", kind: "textarea" }, { key: "name", label: "Name", kind: "text", placeholder: "Maria, mom of Leo" }, { key: "photo", label: "Photo (optional)", kind: "image" }] },
+    ],
+    defaults: { heading: "What parents say", layout: "grid", items: [{ quote: "Our son is communicating in ways we never thought possible. The team feels like family.", name: "Parent of a 5-year-old" }, { quote: "They listened to us first, then built a plan around our child and our routines.", name: "Parent of a 3-year-old" }, { quote: "Every session is joyful. He runs to the door when they arrive.", name: "Parent of a 4-year-old" }] },
+  },
+  {
+    type: "testimonial",
+    label: "Featured testimonial",
+    hint: "One large pull quote",
+    fields: [
+      { key: "quote", label: "Quote", kind: "textarea" },
+      { key: "name", label: "Name", kind: "text", placeholder: "Maria, mom of Leo" },
+      { key: "photo", label: "Photo (optional)", kind: "image" },
+    ],
+    defaults: { quote: "Our son is communicating in ways we never thought possible. The team feels like family.", name: "Parent of a 5-year-old" },
+  },
+  {
+    type: "outcomes",
+    label: "Outcomes & success stories",
+    hint: "Short, anonymized results that show what progress looks like",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Progress families see" },
+      { key: "items", label: "Stories", kind: "list", itemLabel: "story", max: 6, fields: [{ key: "title", label: "Title", kind: "text", placeholder: "From 5 words to full sentences" }, { key: "text", label: "Story", kind: "textarea" }] },
+      { key: "note", label: "Small print", kind: "text", placeholder: "Details changed to protect privacy." },
+    ],
+    defaults: { heading: "Progress families see", items: [{ title: "From a few words to full sentences", text: "Within a year of starting, a 4-year-old went from using a handful of words to telling his parents about his day." }, { title: "Calmer mornings", text: "A family worked with their team on a visual routine, and school drop-off tantrums dropped from daily to rare." }], note: "Details changed to protect privacy. Every child's progress is different." },
+  },
 ] as const;
 
 export type BlockType = (typeof BLOCK_TYPES)[number]["type"];
 export const blockType = (type: string) => BLOCK_TYPES.find((t) => t.type === type);
 
 export const configText = (c: BlockConfig, key: string) => (typeof c[key] === "string" ? (c[key] as string) : "");
+// Items of a "list" field (stats, testimonials, …): plain objects of strings, with image paths as "<key>_path".
+export const configList = (c: BlockConfig, key = "items"): Record<string, string>[] => (Array.isArray(c[key]) ? (c[key] as Record<string, string>[]) : []);
 export const configItems = (c: BlockConfig): ActionItem[] => (Array.isArray(c.items) ? (c.items as ActionItem[]) : []);
 
 // "" for none, null for something unusable. Unlike news links, buttons here may also be phone/email
@@ -104,9 +176,26 @@ export function normalizeBlockLink(raw: string): string | null {
   }
 }
 
+// Every uploaded image path in a config, top level or inside list rows. Used to look up URLs and to clean up files no longer used.
+export function collectImagePaths(c: BlockConfig): string[] {
+  const out: string[] = [];
+  const scan = (o: Record<string, unknown>) => {
+    for (const [k, v] of Object.entries(o)) {
+      if (k.endsWith("_path") && typeof v === "string" && v) out.push(v);
+      else if (Array.isArray(v)) for (const row of v) if (row && typeof row === "object") scan(row as Record<string, unknown>);
+    }
+  };
+  scan(c);
+  return out;
+}
+
 // A short line for the dashboard list.
 export function blockSummary(type: string, c: BlockConfig) {
   if (type === "announcement") return configText(c, "text");
+  if (type === "testimonial") return configText(c, "quote");
+  if (type === "stats") return configList(c).map((i) => `${i.value ?? ""} ${i.label ?? ""}`.trim()).join(" · ");
+  if (["insurance", "credentials"].includes(type)) return configList(c).map((i) => i.name).filter(Boolean).join(" · ");
+  if (["testimonials", "outcomes"].includes(type)) return configText(c, "heading");
   if (type === "quick_actions") return configItems(c).filter((i) => i.label).map((i) => i.label).join(" · ");
   return configText(c, "headline");
 }

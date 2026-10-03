@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { configText } from "@/lib/blocks";
+import { collectImagePaths } from "@/lib/blocks";
 import { getHomeBlocks, getSite, logoUrl } from "@/lib/site";
 import { BlockView } from "./blocks";
 
@@ -22,9 +22,8 @@ export default async function SitePage({ params }: PageProps<"/site/[domain]">) 
     );
   }
 
-  return (
-    <>
-      {await Promise.all(blocks.map(async (b) => <BlockView key={b.id} block={b} imageUrl={await logoUrl(configText(b.config, "image_path") || null)} />))}
-    </>
-  );
+  const urls: Record<string, string> = {};
+  for (const path of blocks.flatMap((b) => collectImagePaths(b.config))) urls[path] = (await logoUrl(path)) ?? "";
+
+  return <>{blocks.map((b) => <BlockView key={b.id} block={b} urls={urls} />)}</>;
 }

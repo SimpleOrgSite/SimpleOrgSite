@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { ACTION_ICONS, MAX_ACTIONS, blockType, normalizeBlockLink, type ActionItem, type BlockConfig, type BlockField } from "@/lib/blocks";
+import { ACTION_ICONS, MAX_ACTIONS, collectImagePaths, blockType, normalizeBlockLink, type ActionItem, type BlockConfig, type BlockField } from "@/lib/blocks";
 import { NEWS_LAYOUTS, normalizeDate, normalizeLink, normalizeTags } from "@/lib/news";
 import { hasText, sanitizeRichText } from "@/lib/richtext";
 import { DIRECTOR_LAYOUTS, PHOTO_SHAPES } from "@/lib/directors";
@@ -369,6 +369,15 @@ export async function addBlock(type: string) {
   redirect(data ? `/dashboard/blocks/${data.id}` : "/dashboard?tab=home");
 }
 
+async function uploadImage(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, file: File): Promise<{ path: string } | { error: string }> {
+  const ext = IMAGE_TYPES[file.type];
+  if (!ext) return { error: "Images must be a PNG, JPG, WebP or SVG." };
+  if (file.size > 2 * 1024 * 1024) return { error: "Images must be under 2 MB." };
+  const path = `${userId}/block-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await supabase.storage.from("logos").upload(path, file, { contentType: file.type });
+  return error ? { error: error.message } : { path };
+}
+
 export async function saveBlock(id: string, _: FormState, formData: FormData): Promise<FormState> {
   const { supabase, user, site } = await currentSite();
   if (!site) return { error: "No domain set." };
@@ -377,16 +386,32 @@ export async function saveBlock(id: string, _: FormState, formData: FormData): P
   if (!block || !def) return { error: "That block no longer exists." };
 
   const old = block.config as BlockConfig;
-  const config: BlockConfig = {};
-  let newImage: string | null = null;
-  let oldImageToRemove: string | null = null;
+  // Only paths this block already owned may be kept: the form is user input, so a spoofed path to someone else's file is ignored.
+  const owned = new Set(collectImagePaths(old));
+  const uploaded: string[] = [];
+  const fail = async (error: string): Promise<FormState> => {
+    if (uploaded.length) await supabase.storage.from("logos").remove(uploaded);
+    return { error };
+  };
+  // Resolves one image input: a new upload wins, then "remove", else the existing file stays.
+  const imageValue = async (name: string): Promise<{ path: string | null } | { error: string }> => {
+    const upload = formData.get(name);
+    if (upload instanceof File && upload.size > 0) {
+      const res = await uploadImage(supabase, user.id, upload);
+      if ("path" in res) uploaded.push(res.path);
+      return res;
+    }
+    const keep = String(formData.get(`${name}_path`) ?? "");
+    return { path: formData.get(`${name}_remove`) !== "on" && owned.has(keep) ? keep : null };
+  };
 
+  const config: BlockConfig = {};
   for (const f of def.fields as readonly BlockField[]) {
     if (f.kind === "text" || f.kind === "textarea") {
       config[f.key] = String(formData.get(f.key) ?? "").trim();
     } else if (f.kind === "link") {
       const link = normalizeBlockLink(String(formData.get(f.key) ?? ""));
-      if (link === null) return { error: `${f.label}: use a web address, a page like /about, or a phone or email link.` };
+      if (link === null) return fail(`${f.label}: use a web address, a page like /about, or a phone or email link.`);
       config[f.key] = link;
     } else if (f.kind === "choice") {
       const v = String(formData.get(f.key));
@@ -396,40 +421,44 @@ export async function saveBlock(id: string, _: FormState, formData: FormData): P
       for (let i = 0; i < MAX_ACTIONS; i++) {
         const label = String(formData.get(`item_label_${i}`) ?? "").trim();
         const link = normalizeBlockLink(String(formData.get(`item_link_${i}`) ?? ""));
-        if (link === null) return { error: `Button ${i + 1}: use a web address, a page like /about, or a phone or email link.` };
+        if (link === null) return fail(`Button ${i + 1}: use a web address, a page like /about, or a phone or email link.`);
         const icon = ACTION_ICONS.find((n) => n === formData.get(`item_icon_${i}`)) ?? ACTION_ICONS[0];
         if (label) items.push({ icon, label, link });
       }
       config[f.key] = items;
     } else if (f.kind === "image") {
-      const key = `${f.key}_path`;
-      const upload = formData.get(f.key);
-      const current = typeof old[key] === "string" ? (old[key] as string) : null;
-      config[key] = current;
-      if (formData.get(`${f.key}_remove`) === "on" && current) {
-        config[key] = null;
-        oldImageToRemove = current;
+      const res = await imageValue(f.key);
+      if ("error" in res) return fail(res.error);
+      config[`${f.key}_path`] = res.path;
+    } else if (f.kind === "list") {
+      // rows arrive in page order as repeated "<key>__rows" uids, each row's inputs named "<key>__<uid>__<sub>".
+      const rows: Record<string, string | null>[] = [];
+      for (const uid of formData.getAll(`${f.key}__rows`).map(String).slice(0, f.max)) {
+        const row: Record<string, string | null> = {};
+        let filled = false;
+        for (const sub of f.fields) {
+          const name = `${f.key}__${uid}__${sub.key}`;
+          if (sub.kind === "image") {
+            const res = await imageValue(name);
+            if ("error" in res) return fail(res.error);
+            row[`${sub.key}_path`] = res.path;
+            filled ||= !!res.path;
+          } else {
+            row[sub.key] = String(formData.get(name) ?? "").trim();
+            filled ||= !!row[sub.key];
+          }
+        }
+        if (filled) rows.push(row);
       }
-      if (upload instanceof File && upload.size > 0) {
-        const ext = IMAGE_TYPES[upload.type];
-        if (!ext) return { error: "Images must be a PNG, JPG, WebP or SVG." };
-        if (upload.size > 2 * 1024 * 1024) return { error: "Images must be under 2 MB." };
-        const path = `${user.id}/block-${Date.now()}.${ext}`;
-        const { error: uploadError } = await supabase.storage.from("logos").upload(path, upload, { contentType: upload.type });
-        if (uploadError) return { error: uploadError.message };
-        newImage = path;
-        config[key] = path;
-        oldImageToRemove = current ?? oldImageToRemove;
-      }
+      config[f.key] = rows;
     }
   }
 
   const { error } = await supabase.from("home_blocks").update({ config }).eq("id", id).eq("site_id", site.id);
-  if (error) {
-    if (newImage) await supabase.storage.from("logos").remove([newImage]);
-    return { error: error.message };
-  }
-  if (oldImageToRemove) await supabase.storage.from("logos").remove([oldImageToRemove]);
+  if (error) return fail(error.message);
+  const kept = new Set(collectImagePaths(config));
+  const unused = [...owned].filter((p) => !kept.has(p));
+  if (unused.length) await supabase.storage.from("logos").remove(unused);
   revalidatePath("/dashboard");
   return { ok: "Saved." };
 }
@@ -438,8 +467,8 @@ export async function deleteBlock(id: string) {
   const { supabase, site } = await currentSite();
   if (!site) return;
   const { data: block } = await supabase.from("home_blocks").select("config").eq("id", id).eq("site_id", site.id).maybeSingle();
-  const image = (block?.config as BlockConfig | undefined)?.image_path;
-  if (typeof image === "string") await supabase.storage.from("logos").remove([image]);
+  const images = block ? collectImagePaths(block.config as BlockConfig) : [];
+  if (images.length) await supabase.storage.from("logos").remove(images);
   await supabase.from("home_blocks").delete().eq("id", id).eq("site_id", site.id);
   revalidatePath("/dashboard");
   redirect("/dashboard?tab=home");

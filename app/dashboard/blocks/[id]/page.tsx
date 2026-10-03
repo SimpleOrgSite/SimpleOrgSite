@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { blockType, configText, type HomeBlock } from "@/lib/blocks";
+import { blockType, collectImagePaths, type HomeBlock } from "@/lib/blocks";
 import { logoUrl } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { BlockForm } from "../block-form";
@@ -20,8 +20,8 @@ export default async function EditBlock({ params }: PageProps<"/dashboard/blocks
   if (!data || !def) notFound();
   const block = data as HomeBlock;
 
-  const imageUrls: Record<string, string | null> = {};
-  for (const f of def.fields) if (f.kind === "image") imageUrls[f.key] = await logoUrl(configText(block.config, `${f.key}_path`) || null);
+  const urls: Record<string, string> = {};
+  for (const path of collectImagePaths(block.config)) urls[path] = (await logoUrl(path)) ?? "";
 
   return (
     <div className="flex-1 bg-gray-50">
@@ -29,7 +29,7 @@ export default async function EditBlock({ params }: PageProps<"/dashboard/blocks
         <Link href="/dashboard?tab=home" className="text-sm text-gray-500 transition hover:text-gray-900">← Back</Link>
         <h1 className="text-2xl font-semibold">{def.label}</h1>
         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5">
-          <BlockForm block={block} fields={def.fields} imageUrls={imageUrls} />
+          <BlockForm block={block} fields={def.fields} urls={urls} />
         </div>
       </main>
     </div>

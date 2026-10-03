@@ -1,14 +1,95 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Icon } from "@/components/icons";
-import { ACTION_ICONS, MAX_ACTIONS, configItems, configText, type BlockField, type HomeBlock } from "@/lib/blocks";
+import { ACTION_ICONS, MAX_ACTIONS, configItems, configList, configText, type BlockField, type HomeBlock } from "@/lib/blocks";
 import { deleteBlock, saveBlock, toggleBlock, type FormState } from "../actions";
 import { button, dangerLink, file, input, label, tile } from "../ui";
 
+const iconButton = "flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:pointer-events-none disabled:opacity-30";
+
+// An image input that keeps the existing file unless a new one is chosen or "remove" is ticked.
+// "name" is both the file input and the prefix of its hidden "_path" / "_remove" companions read by saveBlock.
+function ImageInput({ name, path, urls, hint }: { name: string; path: string; urls: Record<string, string>; hint?: string }) {
+  const url = path ? urls[path] : null;
+  return (
+    <div className="space-y-2">
+      {url && (
+        <div className="space-y-2">
+          <input type="hidden" name={`${name}_path`} value={path} />
+          {/* eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions */}
+          <img src={url} alt="" className="h-24 w-auto max-w-full rounded-xl border border-gray-200 bg-white object-contain" />
+          <label className="flex items-center gap-2 text-sm text-gray-600">
+            <input type="checkbox" name={`${name}_remove`} className="h-4 w-4 accent-gray-900" />
+            Remove this image
+          </label>
+        </div>
+      )}
+      <input type="file" name={name} accept="image/png,image/jpeg,image/webp,image/svg+xml" className={file} />
+      {hint !== undefined && <p className="text-xs text-gray-500">{hint}</p>}
+    </div>
+  );
+}
+
+type Row = { uid: string; values: Record<string, string> };
+
+// Repeatable rows. Inputs are uncontrolled and keyed by uid, so reordering and deleting keep what's been typed or picked.
+function ListField({ field, initial, urls }: { field: Extract<BlockField, { kind: "list" }>; initial: Record<string, string>[]; urls: Record<string, string> }) {
+  const [rows, setRows] = useState<Row[]>(() => initial.map((values) => ({ uid: crypto.randomUUID(), values })));
+  const move = (i: number, by: -1 | 1) =>
+    setRows((all) => {
+      const next = [...all];
+      [next[i], next[i + by]] = [next[i + by], next[i]];
+      return next;
+    });
+  return (
+    <fieldset className="space-y-3">
+      <legend className={`${label} mb-2`}>{field.label}</legend>
+      {rows.map((row, i) => (
+        <div key={row.uid} className="space-y-3 rounded-2xl border border-gray-200 bg-gray-50/50 p-4">
+          <input type="hidden" name={`${field.key}__rows`} value={row.uid} />
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium uppercase tracking-wide text-gray-400">{field.itemLabel} {i + 1}</span>
+            <div className="flex">
+              <button type="button" aria-label="Move up" title="Move up" disabled={i === 0} onClick={() => move(i, -1)} className={iconButton}><Icon name="arrow-up" /></button>
+              <button type="button" aria-label="Move down" title="Move down" disabled={i === rows.length - 1} onClick={() => move(i, 1)} className={iconButton}><Icon name="arrow-down" /></button>
+              <button type="button" aria-label={`Delete ${field.itemLabel}`} title="Delete" onClick={() => setRows((all) => all.filter((r) => r.uid !== row.uid))} className={`${iconButton} hover:!bg-red-50 hover:!text-red-600`}><Icon name="trash" /></button>
+            </div>
+          </div>
+          {field.fields.map((sub) => {
+            const name = `${field.key}__${row.uid}__${sub.key}`;
+            return (
+              <div key={sub.key} className="space-y-1">
+                <span className={label}>{sub.label}</span>
+                {sub.kind === "image" ? (
+                  <ImageInput name={name} path={row.values[`${sub.key}_path`] ?? ""} urls={urls} />
+                ) : sub.kind === "textarea" ? (
+                  <textarea name={name} defaultValue={row.values[sub.key] ?? ""} rows={3} placeholder={sub.placeholder} className={input} />
+                ) : (
+                  <input name={name} defaultValue={row.values[sub.key] ?? ""} placeholder={sub.placeholder} className={input} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+      ))}
+      {rows.length < field.max && (
+        <button
+          type="button"
+          onClick={() => setRows((all) => [...all, { uid: crypto.randomUUID(), values: {} }])}
+          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-gray-300 py-3 text-sm font-medium text-gray-600 transition hover:border-gray-400 hover:bg-gray-50"
+        >
+          <Icon name="plus" /> Add {field.itemLabel}
+        </button>
+      )}
+      {field.hint && <p className="text-xs text-gray-500">{field.hint}</p>}
+    </fieldset>
+  );
+}
+
 // Renders whatever fields the block type declares in lib/blocks.ts.
-export function BlockForm({ block, fields, imageUrls }: { block: HomeBlock; fields: readonly BlockField[]; imageUrls: Record<string, string | null> }) {
+export function BlockForm({ block, fields, urls }: { block: HomeBlock; fields: readonly BlockField[]; urls: Record<string, string> }) {
   const [state, action, pending] = useActionState(saveBlock.bind(null, block.id), null as FormState);
   const c = block.config;
   return (
@@ -55,25 +136,14 @@ export function BlockForm({ block, fields, imageUrls }: { block: HomeBlock; fiel
             );
           }
           if (f.kind === "image") {
-            const url = imageUrls[f.key];
             return (
               <div key={f.key} className="space-y-2">
                 <span className={label}>{f.label}</span>
-                {url && (
-                  <div className="space-y-2">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions */}
-                    <img src={url} alt="" className="h-32 w-auto max-w-full rounded-xl border border-gray-200 object-cover" />
-                    <label className="flex items-center gap-2 text-sm text-gray-600">
-                      <input type="checkbox" name={`${f.key}_remove`} className="h-4 w-4 accent-gray-900" />
-                      Remove this image
-                    </label>
-                  </div>
-                )}
-                <input type="file" name={f.key} accept="image/png,image/jpeg,image/webp,image/svg+xml" className={file} />
-                <p className="text-xs text-gray-500">{f.hint ?? "PNG, JPG, WebP or SVG, under 2 MB."}</p>
+                <ImageInput name={f.key} path={configText(c, `${f.key}_path`)} urls={urls} hint={f.hint ?? "PNG, JPG, WebP or SVG, under 2 MB."} />
               </div>
             );
           }
+          if (f.kind === "list") return <ListField key={f.key} field={f} initial={configList(c, f.key)} urls={urls} />;
           // actions
           const items = configItems(c);
           return (

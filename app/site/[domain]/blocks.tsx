@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { Icon } from "@/components/icons";
-import { configItems, configText, type HomeBlock } from "@/lib/blocks";
+import { configItems, configList, configText, type HomeBlock } from "@/lib/blocks";
+
+type Urls = Record<string, string>;
+const urlOf = (urls: Urls, path: string | undefined) => (path ? urls[path] || null : null);
 
 const THEME = "var(--theme-color, #111827)";
 
@@ -65,8 +68,9 @@ export function AnnouncementBar({ block }: { block: HomeBlock }) {
   );
 }
 
-function Hero({ block, imageUrl }: { block: HomeBlock; imageUrl: string | null }) {
+function Hero({ block, urls }: { block: HomeBlock; urls: Urls }) {
   const c = block.config;
+  const imageUrl = urlOf(urls, configText(c, "image_path"));
   const center = configText(c, "align") !== "left";
   return (
     <section
@@ -84,8 +88,9 @@ function Hero({ block, imageUrl }: { block: HomeBlock; imageUrl: string | null }
   );
 }
 
-function HeroSplit({ block, imageUrl }: { block: HomeBlock; imageUrl: string | null }) {
+function HeroSplit({ block, urls }: { block: HomeBlock; urls: Urls }) {
   const c = block.config;
+  const imageUrl = urlOf(urls, configText(c, "image_path"));
   const imageLeft = configText(c, "image_side") === "left";
   return (
     <section>
@@ -131,11 +136,181 @@ function QuickActions({ block }: { block: HomeBlock }) {
   );
 }
 
-export function BlockView({ block, imageUrl }: { block: HomeBlock; imageUrl: string | null }) {
+const heading = (text: string) => (text ? <h2 className="text-center text-2xl font-semibold sm:text-3xl" style={{ color: THEME }}>{text}</h2> : null);
+
+// Logos when there is one, plain text otherwise, so a plan can be listed before its logo is uploaded.
+function Insurance({ block, urls }: { block: HomeBlock; urls: Urls }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.name || i.logo_path);
+  if (items.length === 0) return null;
+  const link = configText(c, "link");
+  return (
+    <section>
+      <div className="mx-auto max-w-5xl space-y-8 px-6 py-14">
+        <div className="space-y-2 text-center">
+          {heading(configText(c, "heading"))}
+          {configText(c, "subhead") && <p className="text-lg text-gray-600">{configText(c, "subhead")}</p>}
+        </div>
+        <ul className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6">
+          {items.map((i, n) => {
+            const logo = urlOf(urls, i.logo_path);
+            return (
+              <li key={n} className="flex h-12 items-center">
+                {logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
+                  <img src={logo} alt={i.name || ""} className="max-h-12 w-auto max-w-[9rem] object-contain" />
+                ) : (
+                  <span className="rounded-full bg-gray-100 px-4 py-2 font-medium text-gray-700">{i.name}</span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+        {link && (
+          <div className="text-center">
+            <SmartLink href={link} className={buttonBase} style={{ backgroundColor: THEME, color: "#fff" }}>{configText(c, "link_label") || "Verify my coverage"}</SmartLink>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Credentials({ block, urls }: { block: HomeBlock; urls: Urls }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.name || i.logo_path);
+  if (items.length === 0) return null;
+  return (
+    <section className="bg-gray-50">
+      <div className="mx-auto max-w-5xl space-y-8 px-6 py-14">
+        {heading(configText(c, "heading"))}
+        <ul className="flex flex-wrap justify-center gap-x-10 gap-y-8">
+          {items.map((i, n) => {
+            const badge = urlOf(urls, i.logo_path);
+            return (
+              <li key={n} className="flex w-36 flex-col items-center gap-3 text-center">
+                {badge ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
+                  <img src={badge} alt="" className="h-16 w-auto max-w-full object-contain" />
+                ) : (
+                  <span className="flex h-16 w-16 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in srgb, ${THEME} 12%, white)`, color: THEME }}>
+                    <Icon name="shield-check" className="h-8 w-8" />
+                  </span>
+                )}
+                {i.name && <span className="text-sm font-medium text-gray-700">{i.name}</span>}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function Stats({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.value || i.label);
+  if (items.length === 0) return null;
+  return (
+    <section className="text-white" style={{ backgroundColor: THEME }}>
+      <div className="mx-auto max-w-5xl space-y-8 px-6 py-14">
+        {configText(c, "heading") && <h2 className="text-center text-2xl font-semibold sm:text-3xl">{configText(c, "heading")}</h2>}
+        <dl className="flex flex-wrap justify-center gap-x-16 gap-y-8">
+          {items.map((i, n) => (
+            <div key={n} className="flex min-w-36 flex-col-reverse text-center">
+              <dt className="mt-1 text-white/80">{i.label}</dt>
+              <dd className="text-5xl font-bold">{i.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+  );
+}
+
+function Person({ name, photo }: { name?: string; photo: string | null }) {
+  if (!name && !photo) return null;
+  return (
+    <div className="flex items-center gap-3">
+      {photo && (
+        // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
+        <img src={photo} alt="" className="h-11 w-11 rounded-full object-cover" />
+      )}
+      {name && <span className="font-medium text-gray-900">{name}</span>}
+    </div>
+  );
+}
+
+function Testimonials({ block, urls }: { block: HomeBlock; urls: Urls }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.quote);
+  if (items.length === 0) return null;
+  const scroll = configText(c, "layout") === "scroll";
+  return (
+    <section className="bg-gray-50">
+      <div className="mx-auto max-w-6xl space-y-8 px-6 py-14">
+        {heading(configText(c, "heading"))}
+        {/* The swipeable row is plain CSS scroll-snap: no script, works with touch and trackpad. */}
+        <ul className={scroll ? "-mx-6 flex snap-x snap-mandatory gap-5 overflow-x-auto px-6 pb-3" : "grid gap-5 sm:grid-cols-2 lg:grid-cols-3"}>
+          {items.map((i, n) => (
+            <li key={n} className={`flex flex-col justify-between gap-6 rounded-2xl bg-white p-7 shadow-sm ring-1 ring-gray-900/5 ${scroll ? "w-[85%] shrink-0 snap-center sm:w-96" : ""}`}>
+              <p className="text-lg leading-relaxed text-gray-700">“{i.quote}”</p>
+              <Person name={i.name} photo={urlOf(urls, i.photo_path)} />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function Testimonial({ block, urls }: { block: HomeBlock; urls: Urls }) {
+  const c = block.config;
+  if (!configText(c, "quote")) return null;
+  return (
+    <section>
+      <figure className="mx-auto max-w-3xl space-y-6 px-6 py-16 text-center">
+        <span style={{ color: THEME }}><Icon name="quote" className="mx-auto h-9 w-9" /></span>
+        <blockquote className="text-2xl font-medium leading-relaxed text-gray-800 sm:text-3xl" style={{ color: THEME }}>{configText(c, "quote")}</blockquote>
+        <figcaption className="flex justify-center"><Person name={configText(c, "name")} photo={urlOf(urls, configText(c, "photo_path"))} /></figcaption>
+      </figure>
+    </section>
+  );
+}
+
+function Outcomes({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.title || i.text);
+  if (items.length === 0) return null;
+  return (
+    <section>
+      <div className="mx-auto max-w-6xl space-y-8 px-6 py-14">
+        {heading(configText(c, "heading"))}
+        <ul className="grid gap-5 md:grid-cols-2">
+          {items.map((i, n) => (
+            <li key={n} className="space-y-2 rounded-2xl border-l-4 bg-white p-6 shadow-sm ring-1 ring-gray-900/5" style={{ borderLeftColor: THEME }}>
+              {i.title && <h3 className="text-lg font-semibold text-gray-900">{i.title}</h3>}
+              {i.text && <p className="leading-relaxed text-gray-600">{i.text}</p>}
+            </li>
+          ))}
+        </ul>
+        {configText(c, "note") && <p className="text-center text-sm text-gray-500">{configText(c, "note")}</p>}
+      </div>
+    </section>
+  );
+}
+
+export function BlockView({ block, urls }: { block: HomeBlock; urls: Urls }) {
   switch (block.type) {
-    case "hero": return <Hero block={block} imageUrl={imageUrl} />;
-    case "hero_split": return <HeroSplit block={block} imageUrl={imageUrl} />;
+    case "hero": return <Hero block={block} urls={urls} />;
+    case "hero_split": return <HeroSplit block={block} urls={urls} />;
     case "quick_actions": return <QuickActions block={block} />;
+    case "insurance": return <Insurance block={block} urls={urls} />;
+    case "credentials": return <Credentials block={block} urls={urls} />;
+    case "stats": return <Stats block={block} />;
+    case "testimonials": return <Testimonials block={block} urls={urls} />;
+    case "testimonial": return <Testimonial block={block} urls={urls} />;
+    case "outcomes": return <Outcomes block={block} />;
     default: return null; // announcement renders in the layout, above the header
   }
 }
