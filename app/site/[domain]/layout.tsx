@@ -2,8 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SITE_MARKER } from "@/lib/domain";
 import { logoHeight } from "@/lib/logo";
+import { AnnouncementBar } from "./blocks";
 import { SiteNav, type NavItem } from "./site-nav";
-import { getAboutSections, isVisible, getDirectors, getSite, logoUrl } from "@/lib/site";
+import { getAboutSections, getHomeBlocks, isVisible, getDirectors, getSite, logoUrl } from "@/lib/site";
 
 export default async function SiteLayout({ children, params }: LayoutProps<"/site/[domain]">) {
   const { domain } = await params;
@@ -29,10 +30,13 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/sit
 
   if (site.news_enabled) nav.push({ href: "/news", label: site.news_label || "News", children: [] });
 
+  const announcements = (await getHomeBlocks(site.id)).filter((b) => b.type === "announcement");
+
   // The marker lives in the layout so every page proves it was served by us.
   const marker = { [SITE_MARKER]: site.id };
   return (
     <div className="flex min-h-screen flex-col bg-white text-gray-900" style={{ "--theme-color": site.theme_color } as React.CSSProperties} {...marker}>
+      {announcements.map((b) => <AnnouncementBar key={b.id} block={b} />)}
       <header
         className={`relative ${dark ? "" : "border-b border-gray-200"}`}
         // Dark: theme color is the background, text is white. Light: white background, text is the theme color.

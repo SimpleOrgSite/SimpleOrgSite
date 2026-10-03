@@ -7,12 +7,15 @@ import { logout } from "../login/actions";
 import { AboutForm, AddDomainForm, DirectorsSettingsForm, FooterForm, HeaderStyleForm, NewsSettingsForm, LogoForm, MessageForm, RemoveDomainForm, SiteNameForm, VerifyForm } from "./forms";
 import { buttonSecondary } from "./ui";
 import { NewsList } from "./news/news-list";
+import { BlockList } from "./blocks/block-list";
+import type { HomeBlock } from "@/lib/blocks";
 
 export const dynamic = "force-dynamic";
 
 const TABS = [
   { key: "domain", label: "Domain" },
   { key: "site", label: "Site" },
+  { key: "home", label: "Home" },
   { key: "about", label: "About" },
   { key: "news", label: "News" },
 ] as const;
@@ -42,6 +45,9 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
   const directors = site ? await getDirectors(site.id) : [];
   const { data: newsRows } = site
     ? await supabase.from("news_items").select("id, name, story, link, tags, visible, published_on").eq("site_id", site.id).order("sort_order").order("created_at", { ascending: false })
+    : { data: null };
+  const { data: blockRows } = site
+    ? await supabase.from("home_blocks").select("id, type, enabled, config").eq("site_id", site.id).order("sort_order").order("created_at")
     : { data: null };
   const logo = await logoUrl(site?.logo_path ?? null);
 
@@ -139,6 +145,12 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
                   <FooterForm site={site} headerStyle={site.header_style} color={site.theme_color} siteName={site.site_name} logoUrl={logo} />
                 </Card>
               </>
+            )}
+
+            {tab === "home" && (
+              <Card title="Home page blocks" description="Sections stacked top to bottom on your home page. With none turned on, your home page message is shown instead.">
+                <BlockList blocks={(blockRows ?? []) as HomeBlock[]} />
+              </Card>
             )}
 
             {tab === "news" && (

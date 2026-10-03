@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { ACTION_ICONS, MAX_ACTIONS, blockType, normalizeBlockLink, type ActionItem, type BlockConfig, type BlockField } from "@/lib/blocks";
 import { NEWS_LAYOUTS, normalizeDate, normalizeLink, normalizeTags } from "@/lib/news";
 import { hasText, sanitizeRichText } from "@/lib/richtext";
 import { DIRECTOR_LAYOUTS, PHOTO_SHAPES } from "@/lib/directors";
@@ -347,5 +348,119 @@ export async function moveNewsItem(id: string, by: -1 | 1) {
   [ids[i], ids[j]] = [ids[j], ids[i]];
   // Renumber everything so ties from older rows can't make the swap a no-op.
   await Promise.all(ids.map((rowId, order) => supabase.from("news_items").update({ sort_order: order }).eq("id", rowId).eq("site_id", site.id)));
+  revalidatePath("/dashboard");
+}
+
+// Blocks share the logos bucket (public, image-only, 2 MB), in the owner's own folder.
+async function currentSite() {
+  const { supabase, user } = await currentUser();
+  const { data: site } = await supabase.from("sites").select("id").eq("owner_id", user.id).maybeSingle();
+  return { supabase, user, site };
+}
+
+export async function addBlock(type: string) {
+  const def = blockType(type);
+  const { supabase, site } = await currentSite();
+  if (!def || !site) return;
+  // New blocks go to the bottom of the page.
+  const { data: last } = await supabase.from("home_blocks").select("sort_order").eq("site_id", site.id).order("sort_order", { ascending: false }).limit(1).maybeSingle();
+  const { data } = await supabase.from("home_blocks").insert({ site_id: site.id, type: def.type, config: def.defaults, sort_order: (last?.sort_order ?? -1) + 1 }).select("id").single();
+  revalidatePath("/dashboard");
+  redirect(data ? `/dashboard/blocks/${data.id}` : "/dashboard?tab=home");
+}
+
+export async function saveBlock(id: string, _: FormState, formData: FormData): Promise<FormState> {
+  const { supabase, user, site } = await currentSite();
+  if (!site) return { error: "No domain set." };
+  const { data: block } = await supabase.from("home_blocks").select("type, config").eq("id", id).eq("site_id", site.id).maybeSingle();
+  const def = block && blockType(block.type);
+  if (!block || !def) return { error: "That block no longer exists." };
+
+  const old = block.config as BlockConfig;
+  const config: BlockConfig = {};
+  let newImage: string | null = null;
+  let oldImageToRemove: string | null = null;
+
+  for (const f of def.fields as readonly BlockField[]) {
+    if (f.kind === "text" || f.kind === "textarea") {
+      config[f.key] = String(formData.get(f.key) ?? "").trim();
+    } else if (f.kind === "link") {
+      const link = normalizeBlockLink(String(formData.get(f.key) ?? ""));
+      if (link === null) return { error: `${f.label}: use a web address, a page like /about, or a phone or email link.` };
+      config[f.key] = link;
+    } else if (f.kind === "choice") {
+      const v = String(formData.get(f.key));
+      config[f.key] = f.options.find((o) => o.value === v)?.value ?? f.options[0].value;
+    } else if (f.kind === "actions") {
+      const items: ActionItem[] = [];
+      for (let i = 0; i < MAX_ACTIONS; i++) {
+        const label = String(formData.get(`item_label_${i}`) ?? "").trim();
+        const link = normalizeBlockLink(String(formData.get(`item_link_${i}`) ?? ""));
+        if (link === null) return { error: `Button ${i + 1}: use a web address, a page like /about, or a phone or email link.` };
+        const icon = ACTION_ICONS.find((n) => n === formData.get(`item_icon_${i}`)) ?? ACTION_ICONS[0];
+        if (label) items.push({ icon, label, link });
+      }
+      config[f.key] = items;
+    } else if (f.kind === "image") {
+      const key = `${f.key}_path`;
+      const upload = formData.get(f.key);
+      const current = typeof old[key] === "string" ? (old[key] as string) : null;
+      config[key] = current;
+      if (formData.get(`${f.key}_remove`) === "on" && current) {
+        config[key] = null;
+        oldImageToRemove = current;
+      }
+      if (upload instanceof File && upload.size > 0) {
+        const ext = IMAGE_TYPES[upload.type];
+        if (!ext) return { error: "Images must be a PNG, JPG, WebP or SVG." };
+        if (upload.size > 2 * 1024 * 1024) return { error: "Images must be under 2 MB." };
+        const path = `${user.id}/block-${Date.now()}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from("logos").upload(path, upload, { contentType: upload.type });
+        if (uploadError) return { error: uploadError.message };
+        newImage = path;
+        config[key] = path;
+        oldImageToRemove = current ?? oldImageToRemove;
+      }
+    }
+  }
+
+  const { error } = await supabase.from("home_blocks").update({ config }).eq("id", id).eq("site_id", site.id);
+  if (error) {
+    if (newImage) await supabase.storage.from("logos").remove([newImage]);
+    return { error: error.message };
+  }
+  if (oldImageToRemove) await supabase.storage.from("logos").remove([oldImageToRemove]);
+  revalidatePath("/dashboard");
+  return { ok: "Saved." };
+}
+
+export async function deleteBlock(id: string) {
+  const { supabase, site } = await currentSite();
+  if (!site) return;
+  const { data: block } = await supabase.from("home_blocks").select("config").eq("id", id).eq("site_id", site.id).maybeSingle();
+  const image = (block?.config as BlockConfig | undefined)?.image_path;
+  if (typeof image === "string") await supabase.storage.from("logos").remove([image]);
+  await supabase.from("home_blocks").delete().eq("id", id).eq("site_id", site.id);
+  revalidatePath("/dashboard");
+  redirect("/dashboard?tab=home");
+}
+
+export async function toggleBlock(id: string, enabled: boolean) {
+  const { supabase, site } = await currentSite();
+  if (!site) return;
+  await supabase.from("home_blocks").update({ enabled }).eq("id", id).eq("site_id", site.id);
+  revalidatePath("/dashboard");
+}
+
+export async function moveBlock(id: string, by: -1 | 1) {
+  const { supabase, site } = await currentSite();
+  if (!site) return;
+  const { data: rows } = await supabase.from("home_blocks").select("id").eq("site_id", site.id).order("sort_order").order("created_at");
+  const ids = (rows ?? []).map((r) => r.id);
+  const i = ids.indexOf(id);
+  const j = i + by;
+  if (i === -1 || j < 0 || j >= ids.length) return;
+  [ids[i], ids[j]] = [ids[j], ids[i]];
+  await Promise.all(ids.map((rowId, order) => supabase.from("home_blocks").update({ sort_order: order }).eq("id", rowId).eq("site_id", site.id)));
   revalidatePath("/dashboard");
 }

@@ -1,4 +1,5 @@
 import { cache } from "react";
+import type { HomeBlock } from "@/lib/blocks";
 import type { NewsItem, NewsLayout } from "@/lib/news";
 import type { Director, DirectorLayout, PhotoShape } from "@/lib/directors";
 import { hasText } from "@/lib/richtext";
@@ -94,5 +95,18 @@ export const getNews = cache(async (siteId: string): Promise<NewsItem[]> => {
     .eq("visible", true)
     .order("sort_order")
     .order("created_at", { ascending: false });
+  return data ?? [];
+});
+
+// Public view: only blocks that are turned on, top to bottom.
+export const getHomeBlocks = cache(async (siteId: string): Promise<HomeBlock[]> => {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("home_blocks")
+    .select("id, type, enabled, config")
+    .eq("site_id", siteId)
+    .eq("enabled", true)
+    .order("sort_order")
+    .order("created_at");
   return data ?? [];
 });
