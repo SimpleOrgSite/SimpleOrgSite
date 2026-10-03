@@ -29,10 +29,17 @@ function Tags({ tags, isActive, toggle }: { tags: string[] } & TagProps) {
   );
 }
 
-function ReadMore({ href }: { href: string }) {
+// A real button look: theme-color background with white text (same rule as the dark header).
+function ReadMore({ href, small }: { href: string; small?: boolean }) {
   return (
-    <a href={href} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 font-medium" style={{ color: "var(--theme-color, #2563eb)" }}>
-      Read more <Icon name="arrow-right" />
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`inline-flex items-center rounded-xl font-medium text-white shadow-sm transition hover:opacity-85 ${small ? "px-3.5 py-1.5 text-sm" : "px-5 py-2.5"}`}
+      style={{ backgroundColor: THEME }}
+    >
+      Read more
     </a>
   );
 }
@@ -112,7 +119,7 @@ function CompactCard({ item, ...tagProps }: { item: NewsItem } & TagProps) {
           </button>
         )}
       </div>
-      {item.link && <div className="text-sm"><ReadMore href={item.link} /></div>}
+      {item.link && <div><ReadMore href={item.link} small /></div>}
       {open && (
         <div className="space-y-3 border-t border-gray-100 pt-3">
           <DateLine date={item.published_on} />
@@ -135,11 +142,7 @@ function HeadlineRow({ item, ...tagProps }: { item: NewsItem } & TagProps) {
           <DateLine date={item.published_on} className="!text-xs" />
           <h2 className="font-semibold leading-snug">{item.name}</h2>
         </div>
-        {item.link && (
-          <a href={item.link} target="_blank" rel="noopener noreferrer" aria-label={`Open link for ${item.name}`} className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100" style={{ color: "var(--theme-color, #2563eb)" }}>
-            <Icon name="arrow-right" className="h-5 w-5" />
-          </a>
-        )}
+        {item.link && <ReadMore href={item.link} small />}
         {expandable && (
           <button
             type="button"
