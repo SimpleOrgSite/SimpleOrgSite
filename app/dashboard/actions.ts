@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { normalizeLink, normalizeTags } from "@/lib/news";
 import { hasText, sanitizeRichText } from "@/lib/richtext";
 import { DIRECTOR_LAYOUTS, PHOTO_SHAPES } from "@/lib/directors";
 import { createClient } from "@/lib/supabase/server";
@@ -268,4 +269,81 @@ export async function saveFooter(_: FormState, formData: FormData): Promise<Form
   if (error) return { error: error.message };
   revalidatePath("/dashboard");
   return { ok: "Saved." };
+}
+
+export async function saveNewsSettings(_: FormState, formData: FormData): Promise<FormState> {
+  const { supabase, user } = await currentUser();
+  const { error } = await supabase
+    .from("sites")
+    .update({
+      news_enabled: formData.get("news_enabled") === "on",
+      news_label: String(formData.get("news_label")).trim() || "News",
+    })
+    .eq("owner_id", user.id);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard");
+  return { ok: "Saved." };
+}
+
+export async function saveNewsItem(id: string | null, _: FormState, formData: FormData): Promise<FormState> {
+  const { supabase, user } = await currentUser();
+  const { data: site } = await supabase.from("sites").select("id").eq("owner_id", user.id).maybeSingle();
+  if (!site) return { error: "No domain set." };
+
+  const name = String(formData.get("name")).trim();
+  if (!name) return { error: "Name is required." };
+  const link = normalizeLink(String(formData.get("link") ?? ""));
+  if (link === null) return { error: "The link must be a web address, like https://example.com." };
+
+  const row = {
+    name,
+    story: sanitizeRichText(String(formData.get("story") ?? "")),
+    link,
+    tags: normalizeTags(formData.getAll("tag").map(String)),
+    visible: formData.get("visible") === "on",
+  };
+
+  if (id) {
+    const { error } = await supabase.from("news_items").update(row).eq("id", id).eq("site_id", site.id);
+    if (error) return { error: error.message };
+  } else {
+    // New stories go to the top of the list.
+    const { data: first } = await supabase.from("news_items").select("sort_order").eq("site_id", site.id).order("sort_order").limit(1).maybeSingle();
+    const { error } = await supabase.from("news_items").insert({ ...row, site_id: site.id, sort_order: (first?.sort_order ?? 1) - 1 });
+    if (error) return { error: error.message };
+  }
+  revalidatePath("/dashboard");
+  redirect("/dashboard?tab=news");
+}
+
+export async function deleteNewsItem(id: string) {
+  const { supabase, user } = await currentUser();
+  const { data: site } = await supabase.from("sites").select("id").eq("owner_id", user.id).maybeSingle();
+  if (!site) return;
+  await supabase.from("news_items").delete().eq("id", id).eq("site_id", site.id);
+  revalidatePath("/dashboard");
+  redirect("/dashboard?tab=news");
+}
+
+export async function toggleNewsVisible(id: string, visible: boolean) {
+  const { supabase, user } = await currentUser();
+  const { data: site } = await supabase.from("sites").select("id").eq("owner_id", user.id).maybeSingle();
+  if (!site) return;
+  await supabase.from("news_items").update({ visible }).eq("id", id).eq("site_id", site.id);
+  revalidatePath("/dashboard");
+}
+
+export async function moveNewsItem(id: string, by: -1 | 1) {
+  const { supabase, user } = await currentUser();
+  const { data: site } = await supabase.from("sites").select("id").eq("owner_id", user.id).maybeSingle();
+  if (!site) return;
+  const { data: rows } = await supabase.from("news_items").select("id").eq("site_id", site.id).order("sort_order").order("created_at", { ascending: false });
+  const ids = (rows ?? []).map((r) => r.id);
+  const i = ids.indexOf(id);
+  const j = i + by;
+  if (i === -1 || j < 0 || j >= ids.length) return;
+  [ids[i], ids[j]] = [ids[j], ids[i]];
+  // Renumber everything so ties from older rows can't make the swap a no-op.
+  await Promise.all(ids.map((rowId, order) => supabase.from("news_items").update({ sort_order: order }).eq("id", rowId).eq("site_id", site.id)));
+  revalidatePath("/dashboard");
 }

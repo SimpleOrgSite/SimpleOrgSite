@@ -4,8 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { dnsRecordsFor } from "@/lib/domain";
 import { getAboutSections, getDirectors, logoUrl } from "@/lib/site";
 import { logout } from "../login/actions";
-import { AboutForm, AddDomainForm, DirectorsSettingsForm, FooterForm, HeaderStyleForm, LogoForm, MessageForm, RemoveDomainForm, SiteNameForm, VerifyForm } from "./forms";
+import { AboutForm, AddDomainForm, DirectorsSettingsForm, FooterForm, HeaderStyleForm, NewsSettingsForm, LogoForm, MessageForm, RemoveDomainForm, SiteNameForm, VerifyForm } from "./forms";
 import { buttonSecondary } from "./ui";
+import { NewsList } from "./news/news-list";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,7 @@ const TABS = [
   { key: "domain", label: "Domain" },
   { key: "site", label: "Site" },
   { key: "about", label: "About" },
+  { key: "news", label: "News" },
 ] as const;
 
 function Card({ title, description, aside, children }: { title: string; description?: string; aside?: React.ReactNode; children: React.ReactNode }) {
@@ -38,6 +40,9 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
   const { data: site } = await supabase.from("sites").select("*").eq("owner_id", auth.user.id).maybeSingle();
   const aboutSections = site ? await getAboutSections(site.id) : [];
   const directors = site ? await getDirectors(site.id) : [];
+  const { data: newsRows } = site
+    ? await supabase.from("news_items").select("id, name, story, link, tags, visible").eq("site_id", site.id).order("sort_order").order("created_at", { ascending: false })
+    : { data: null };
   const logo = await logoUrl(site?.logo_path ?? null);
 
   // New sites land on Domain until it's verified; after that, on the content they'll edit most.
@@ -132,6 +137,21 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
                 </Card>
                 <Card title="Footer" description="Shown at the bottom of every page.">
                   <FooterForm site={site} headerStyle={site.header_style} color={site.theme_color} siteName={site.site_name} logoUrl={logo} />
+                </Card>
+              </>
+            )}
+
+            {tab === "news" && (
+              <>
+                <Card title="News page" description="A page of stories your visitors can search and filter by tag.">
+                  <NewsSettingsForm enabled={site.news_enabled} label={site.news_label} />
+                </Card>
+                <Card
+                  title="Stories"
+                  description="Newest first by default. Reorder with the arrows."
+                  aside={<Link href="/dashboard/news/new" className={buttonSecondary}>Add story</Link>}
+                >
+                  <NewsList items={newsRows ?? []} />
                 </Card>
               </>
             )}

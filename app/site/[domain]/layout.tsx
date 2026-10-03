@@ -27,6 +27,8 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/sit
     nav.push({ href: "/about", label: site.about_label || "About Us", children });
   }
 
+  if (site.news_enabled) nav.push({ href: "/news", label: site.news_label || "News", children: [] });
+
   // The marker lives in the layout so every page proves it was served by us.
   const marker = { [SITE_MARKER]: site.id };
   return (

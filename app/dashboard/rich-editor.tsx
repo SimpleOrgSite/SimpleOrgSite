@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { sanitizeRichText } from "@/lib/richtext";
-import { Icon } from "./icons";
+import { Icon } from "@/components/icons";
 
 const COLORS = [
   { name: "Default", value: "#374151" },
