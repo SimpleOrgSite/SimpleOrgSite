@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Icon, LibraryIcon } from "@/components/icons";
-import { BLOCK_TYPES, blockSummary, blockType, type HomeBlock } from "@/lib/blocks";
+import { BLOCK_TYPES, blockSummary, blockType, configText, type HomeBlock } from "@/lib/blocks";
 import { addBlock, deleteBlock, moveBlock, toggleBlock } from "../actions";
 
 const iconButton = "flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:pointer-events-none disabled:opacity-30";
@@ -15,7 +15,10 @@ export function BlockList({ blocks }: { blocks: HomeBlock[] }) {
           {blocks.map((b, i) => (
             <li key={b.id} className="flex items-center gap-3 px-4 py-3">
               <Link href={`/dashboard/blocks/${b.id}`} className="min-w-0 flex-1">
-                <span className={`block font-medium ${b.enabled ? "" : "text-gray-400"}`}>{blockType(b.type)?.label ?? b.type}</span>
+                <span className={`flex items-baseline gap-2 ${b.enabled ? "" : "text-gray-400"}`}>
+                  <span className="truncate font-medium">{configText(b.config, "internal_name") || blockType(b.type)?.label || b.type}</span>
+                  {configText(b.config, "internal_name") && <span className="shrink-0 text-xs font-normal text-gray-400">{blockType(b.type)?.label ?? b.type}</span>}
+                </span>
                 <span className="block truncate text-sm text-gray-500">{blockSummary(b.type, b.config) || "Not filled in yet"}</span>
               </Link>
               <form action={toggleBlock.bind(null, b.id, !b.enabled)}>

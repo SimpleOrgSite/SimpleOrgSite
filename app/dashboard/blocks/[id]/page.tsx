@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { blockType, collectImagePaths, type HomeBlock } from "@/lib/blocks";
+import { blockType, collectImagePaths, configText, type HomeBlock } from "@/lib/blocks";
 import { logoUrl, sitePageLinks, type Site } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { BlockForm } from "../block-form";
@@ -27,7 +27,8 @@ export default async function EditBlock({ params }: PageProps<"/dashboard/blocks
     <div className="flex-1 bg-gray-50">
       <main className="mx-auto max-w-2xl space-y-6 px-6 py-10">
         <Link href="/dashboard?tab=home" className="text-sm text-gray-500 transition hover:text-gray-900">← Back</Link>
-        <h1 className="text-2xl font-semibold">{def.label}</h1>
+        <h1 className="text-2xl font-semibold">{configText(block.config, "internal_name") || def.label}</h1>
+        {configText(block.config, "internal_name") && <p className="-mt-4 text-sm text-gray-400">{def.label}</p>}
         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5">
           <BlockForm block={block} fields={def.fields} urls={urls} pages={await sitePageLinks(site as Site)} />
         </div>

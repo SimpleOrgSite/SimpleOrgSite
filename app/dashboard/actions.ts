@@ -407,7 +407,8 @@ export async function saveBlock(id: string, _: FormState, formData: FormData): P
     return { path: formData.get(`${name}_remove`) !== "on" && owned.has(keep) ? keep : null };
   };
 
-  const config: BlockConfig = {};
+  // Every block has an owner-only label, shown in the dashboard and never on the site.
+  const config: BlockConfig = { internal_name: String(formData.get("internal_name") ?? "").trim().slice(0, 60) };
   for (const f of def.fields as readonly BlockField[]) {
     if (f.kind === "text" || f.kind === "textarea") {
       config[f.key] = String(formData.get(f.key) ?? "").trim();

@@ -169,6 +169,11 @@ export function BlockForm({ block, fields, urls, pages }: { block: HomeBlock; fi
   return (
     <>
       <form action={action} className="space-y-5">
+        <label className="block space-y-1">
+          <span className={label}>Internal name</span>
+          <input name="internal_name" defaultValue={configText(c, "internal_name")} maxLength={60} placeholder="e.g. Spring enrollment hero" className={input} />
+          <span className="block text-xs text-gray-500">This doesn&apos;t show on your website. It&apos;s just for you, to name and label this section in your list of blocks.</span>
+        </label>
         {fields.map((f) => {
           if (f.kind === "text") {
             return (
