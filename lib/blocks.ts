@@ -1,18 +1,19 @@
-import type { IconName } from "@/components/icons";
+import { ICON_LIBRARY } from "@/components/icon-library";
 
 // Safe to import from client components (no server code).
 // A block's settings are described as data: the editor form, the server-side validation and the
 // dashboard summary all read from BLOCK_TYPES, so a new block type is mostly one entry here plus a renderer.
 
-export type ActionItem = { icon: IconName; label: string; link: string };
+export type ActionItem = { icon: string; label: string; link: string };
 export type BlockConfig = Record<string, unknown>;
 export type HomeBlock = { id: string; type: BlockType; enabled: boolean; config: BlockConfig };
 
-export const ACTION_ICONS = ["phone", "mail", "calendar-event", "clipboard-check", "shield-check", "heart-handshake", "users", "book", "briefcase", "file-text", "map-pin", "home", "star", "message-circle", "school", "puzzle", "heart"] as const satisfies readonly IconName[];
+// Icon names are stored as plain strings; anything not in the library is dropped to "" (no icon).
+export const iconName = (v: unknown) => (typeof v === "string" && Object.hasOwn(ICON_LIBRARY, v) ? v : "");
 export const MAX_ACTIONS = 4;
 
 // One repeatable row inside a "list" field. An image sub-field "logo" is stored as "logo_path".
-export type ListSub = { key: string; label: string; kind: "text" | "textarea" | "image"; placeholder?: string };
+export type ListSub = { key: string; label: string; kind: "text" | "textarea" | "image" | "icon"; placeholder?: string };
 
 type Field =
   | { key: string; label: string; kind: "text" | "textarea" | "link"; placeholder?: string; hint?: string }
@@ -111,7 +112,7 @@ export const BLOCK_TYPES = [
     hint: "Big numbers like “400+ children served”",
     fields: [
       { key: "heading", label: "Heading (optional)", kind: "text" },
-      { key: "items", label: "Stats", kind: "list", itemLabel: "stat", max: 6, fields: [{ key: "value", label: "Number", kind: "text", placeholder: "400+" }, { key: "label", label: "Label", kind: "text", placeholder: "Children served" }] },
+      { key: "items", label: "Stats", kind: "list", itemLabel: "stat", max: 6, fields: [{ key: "icon", label: "Icon (optional)", kind: "icon" }, { key: "value", label: "Number", kind: "text", placeholder: "400+" }, { key: "label", label: "Label", kind: "text", placeholder: "Children served" }] },
     ],
     defaults: { heading: "", items: [{ value: "12", label: "Years serving families" }, { value: "400+", label: "Children served" }, { value: "98%", label: "Parent satisfaction" }] },
   },

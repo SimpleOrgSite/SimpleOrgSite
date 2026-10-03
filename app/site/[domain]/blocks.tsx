@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Icon } from "@/components/icons";
+import { Icon, LibraryIcon } from "@/components/icons";
+import { CountUp } from "./count-up";
 import { configItems, configList, configText, type HomeBlock } from "@/lib/blocks";
 
 type Urls = Record<string, string>;
@@ -115,9 +116,9 @@ function QuickActions({ block }: { block: HomeBlock }) {
   const card = "flex h-full flex-col items-center gap-3 rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-gray-900/5 transition";
   const inner = (i: (typeof items)[number]) => (
     <>
-      <span className="flex h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in srgb, ${THEME} 12%, white)`, color: THEME }}>
-        <Icon name={i.icon} className="h-6 w-6" />
-      </span>
+      {i.icon && <span className="flex h-12 w-12 items-center justify-center rounded-full" style={{ backgroundColor: `color-mix(in srgb, ${THEME} 12%, white)`, color: THEME }}>
+        <LibraryIcon name={i.icon} className="h-6 w-6" />
+      </span>}
       <span className="font-semibold text-gray-900">{i.label}</span>
     </>
   );
@@ -219,7 +220,10 @@ function Stats({ block }: { block: HomeBlock }) {
           {items.map((i, n) => (
             <div key={n} className="flex min-w-36 flex-col-reverse text-center">
               <dt className="mt-1 text-white/80">{i.label}</dt>
-              <dd className="text-5xl font-bold">{i.value}</dd>
+              <dd className="text-5xl font-bold">
+                {i.icon && <span className="mx-auto mb-4 block w-fit text-white/90"><LibraryIcon name={i.icon} className="h-11 w-11" strokeWidth={1.5} /></span>}
+                <CountUp value={i.value} />
+              </dd>
             </div>
           ))}
         </dl>

@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useActionState, useState } from "react";
-import { Icon } from "@/components/icons";
-import { ACTION_ICONS, MAX_ACTIONS, configItems, configList, configText, type BlockField, type HomeBlock } from "@/lib/blocks";
+import { ICON_LIBRARY } from "@/components/icon-library";
+import { Icon, LibraryIcon } from "@/components/icons";
+import { MAX_ACTIONS, configItems, configList, configText, type BlockField, type HomeBlock } from "@/lib/blocks";
 import type { PageLink } from "@/lib/site";
 import { deleteBlock, saveBlock, toggleBlock, type FormState } from "../actions";
 import { button, dangerLink, file, input, label, tile } from "../ui";
@@ -29,6 +30,54 @@ function ImageInput({ name, path, urls, hint }: { name: string; path: string; ur
       )}
       <input type="file" name={name} accept="image/png,image/jpeg,image/webp,image/svg+xml" className={file} />
       {hint !== undefined && <p className="text-xs text-gray-500">{hint}</p>}
+    </div>
+  );
+}
+
+const ICON_NAMES = Object.keys(ICON_LIBRARY);
+
+// Opens inline (no modal) with a search box and a scrollable grid. Submits the chosen icon name, or "" for none, under "name".
+function IconPicker({ name, defaultValue, label: ariaLabel }: { name: string; defaultValue: string; label?: string }) {
+  const [value, setValue] = useState(Object.hasOwn(ICON_LIBRARY, defaultValue) ? defaultValue : "");
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const q = query.trim().toLowerCase();
+  const shown = q ? ICON_NAMES.filter((n) => `${n.replace(/-/g, " ")} ${ICON_LIBRARY[n].tags}`.includes(q)) : ICON_NAMES;
+  return (
+    <div className="space-y-2">
+      <input type="hidden" name={name} value={value} />
+      <button type="button" aria-label={ariaLabel} aria-expanded={open} onClick={() => setOpen((o) => !o)} className={`${input} flex items-center gap-3 text-left`}>
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-gray-100 text-gray-700">{value ? <LibraryIcon name={value} className="h-5 w-5" /> : <Icon name="plus" className="h-4 w-4 text-gray-400" />}</span>
+        <span className={value ? "" : "text-gray-400"}>{value ? value.replace(/-/g, " ") : "No icon"}</span>
+        <Icon name="chevron-down" className={`ml-auto h-4 w-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="space-y-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <Icon name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              {/* Enter would submit the whole form, so swallow it here. */}
+              <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && e.preventDefault()} placeholder="Search icons, e.g. heart, school, phone" className={`${input} pl-10`} />
+            </div>
+            {value && <button type="button" onClick={() => { setValue(""); setOpen(false); }} className="shrink-0 text-sm text-gray-500 transition hover:text-red-600">No icon</button>}
+          </div>
+          <div className="grid max-h-64 grid-cols-6 gap-1.5 overflow-y-auto sm:grid-cols-8">
+            {shown.map((n) => (
+              <button
+                key={n}
+                type="button"
+                title={n.replace(/-/g, " ")}
+                aria-label={n.replace(/-/g, " ")}
+                onClick={() => { setValue(n); setOpen(false); setQuery(""); }}
+                className={`flex aspect-square items-center justify-center rounded-xl text-gray-700 transition hover:bg-gray-100 ${value === n ? "bg-gray-900 !text-white hover:!bg-gray-800" : ""}`}
+              >
+                <LibraryIcon name={n} className="h-6 w-6" />
+              </button>
+            ))}
+            {shown.length === 0 && <p className="col-span-full py-6 text-center text-sm text-gray-500">No icons match “{query}”.</p>}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -85,7 +134,9 @@ function ListField({ field, initial, urls }: { field: Extract<BlockField, { kind
             return (
               <div key={sub.key} className="space-y-1">
                 <span className={label}>{sub.label}</span>
-                {sub.kind === "image" ? (
+                {sub.kind === "icon" ? (
+                  <IconPicker name={name} defaultValue={row.values[sub.key] ?? ""} label={sub.label} />
+                ) : sub.kind === "image" ? (
                   <ImageInput name={name} path={row.values[`${sub.key}_path`] ?? ""} urls={urls} />
                 ) : sub.kind === "textarea" ? (
                   <textarea name={name} defaultValue={row.values[sub.key] ?? ""} rows={3} placeholder={sub.placeholder} className={input} />
@@ -173,10 +224,8 @@ export function BlockForm({ block, fields, urls, pages }: { block: HomeBlock; fi
             <fieldset key={f.key} className="space-y-3">
               <legend className={`${label} mb-2`}>{f.label}</legend>
               {Array.from({ length: MAX_ACTIONS }, (_, i) => (
-                <div key={i} className="grid gap-2 rounded-2xl border border-gray-200 bg-gray-50/50 p-3 sm:grid-cols-[auto_1fr_1fr]">
-                  <select name={`item_icon_${i}`} defaultValue={items[i]?.icon ?? ACTION_ICONS[0]} aria-label={`Button ${i + 1} icon`} className={`${input} sm:w-44`}>
-                    {ACTION_ICONS.map((n) => <option key={n} value={n}>{n.replace(/-/g, " ")}</option>)}
-                  </select>
+                <div key={i} className="grid gap-2 rounded-2xl border border-gray-200 bg-gray-50/50 p-3 sm:grid-cols-2 sm:items-start">
+                  <div className="sm:col-span-2"><IconPicker name={`item_icon_${i}`} defaultValue={items[i]?.icon ?? ""} label={`Button ${i + 1} icon`} /></div>
                   <input name={`item_label_${i}`} defaultValue={items[i]?.label ?? ""} placeholder="Button text" aria-label={`Button ${i + 1} text`} className={input} />
                   <LinkInput name={`item_link_${i}`} defaultValue={items[i]?.link ?? ""} pages={pages} label={`Button ${i + 1} link`} />
                 </div>

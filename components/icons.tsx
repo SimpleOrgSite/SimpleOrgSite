@@ -1,3 +1,5 @@
+import { ICON_LIBRARY } from "./icon-library";
+
 // Tabler outline icons (paths copied from github.com/tabler/tabler-icons).
 const PATHS = {
   bold: ["M7 5h6a3.5 3.5 0 0 1 0 7h-6l0 -7", "M13 12h1a3.5 3.5 0 0 1 0 7h-7v-7"],
@@ -38,10 +40,20 @@ const PATHS = {
 
 export type IconName = keyof typeof PATHS;
 
-export function Icon({ name, className = "h-4 w-4" }: { name: IconName; className?: string }) {
+function Svg({ paths, className, strokeWidth = 2 }: { paths: readonly string[]; className: string; strokeWidth?: number }) {
   return (
-    <svg viewBox="0 0 24 24" className={`${className} stroke-current`} fill="none" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      {PATHS[name].map((d) => <path key={d} d={d} />)}
+    <svg viewBox="0 0 24 24" className={`${className} stroke-current`} fill="none" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      {paths.map((d) => <path key={d} d={d} />)}
     </svg>
   );
+}
+
+export function Icon({ name, className = "h-4 w-4" }: { name: IconName; className?: string }) {
+  return <Svg paths={PATHS[name]} className={className} />;
+}
+
+// An icon a site owner picked from the library; renders nothing for an unknown or empty name.
+export function LibraryIcon({ name, className = "h-6 w-6", strokeWidth }: { name: string; className?: string; strokeWidth?: number }) {
+  const icon = Object.hasOwn(ICON_LIBRARY, name) ? ICON_LIBRARY[name] : null;
+  return icon ? <Svg paths={icon.paths} className={className} strokeWidth={strokeWidth} /> : null;
 }

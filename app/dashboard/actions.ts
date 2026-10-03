@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { ACTION_ICONS, MAX_ACTIONS, collectImagePaths, blockType, normalizeBlockLink, type ActionItem, type BlockConfig, type BlockField } from "@/lib/blocks";
+import { MAX_ACTIONS, iconName, collectImagePaths, blockType, normalizeBlockLink, type ActionItem, type BlockConfig, type BlockField } from "@/lib/blocks";
 import { NEWS_LAYOUTS, normalizeDate, normalizeLink, normalizeTags } from "@/lib/news";
 import { hasText, sanitizeRichText } from "@/lib/richtext";
 import { DIRECTOR_LAYOUTS, PHOTO_SHAPES } from "@/lib/directors";
@@ -424,8 +424,7 @@ export async function saveBlock(id: string, _: FormState, formData: FormData): P
         const label = String(formData.get(`item_label_${i}`) ?? "").trim();
         const link = normalizeBlockLink(String(formData.get(`item_link_${i}`) ?? ""));
         if (link === null) return fail(`Button ${i + 1}: use a web address, a page like /about, or a phone or email link.`);
-        const icon = ACTION_ICONS.find((n) => n === formData.get(`item_icon_${i}`)) ?? ACTION_ICONS[0];
-        if (label) items.push({ icon, label, link });
+        if (label) items.push({ icon: iconName(formData.get(`item_icon_${i}`)), label, link });
       }
       config[f.key] = items;
     } else if (f.kind === "image") {
@@ -445,6 +444,9 @@ export async function saveBlock(id: string, _: FormState, formData: FormData): P
             if ("error" in res) return fail(res.error);
             row[`${sub.key}_path`] = res.path;
             filled ||= !!res.path;
+          } else if (sub.kind === "icon") {
+            // An icon alone doesn't make a row worth keeping.
+            row[sub.key] = iconName(formData.get(name));
           } else {
             row[sub.key] = String(formData.get(name) ?? "").trim();
             filled ||= !!row[sub.key];
