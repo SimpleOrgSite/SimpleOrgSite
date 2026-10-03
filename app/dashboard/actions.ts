@@ -364,9 +364,11 @@ export async function addBlock(type: string) {
   if (!def || !site) return;
   // New blocks go to the bottom of the page.
   const { data: last } = await supabase.from("home_blocks").select("sort_order").eq("site_id", site.id).order("sort_order", { ascending: false }).limit(1).maybeSingle();
-  const { data } = await supabase.from("home_blocks").insert({ site_id: site.id, type: def.type, config: def.defaults, sort_order: (last?.sort_order ?? -1) + 1 }).select("id").single();
+  const { data, error } = await supabase.from("home_blocks").insert({ site_id: site.id, type: def.type, config: def.defaults, sort_order: (last?.sort_order ?? -1) + 1 }).select("id").single();
   revalidatePath("/dashboard");
-  redirect(data ? `/dashboard/blocks/${data.id}` : "/dashboard?tab=home");
+  // Surface failures (e.g. the table hasn't been created yet) instead of silently reloading the same tab.
+  if (error || !data) redirect(`/dashboard?tab=home&error=${encodeURIComponent(error?.message ?? "Couldn't add the block.")}`);
+  redirect(`/dashboard/blocks/${data.id}`);
 }
 
 async function uploadImage(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, file: File): Promise<{ path: string } | { error: string }> {

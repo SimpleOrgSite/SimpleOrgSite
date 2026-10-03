@@ -52,7 +52,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
   const logo = await logoUrl(site?.logo_path ?? null);
 
   // New sites land on Domain until it's verified; after that, on the content they'll edit most.
-  const { tab: requested } = await searchParams;
+  const { tab: requested, error: blockError } = await searchParams;
   const tab = TABS.find((t) => t.key === requested)?.key ?? (site?.verified_at ? "site" : "domain");
 
   return (
@@ -149,6 +149,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
 
             {tab === "home" && (
               <Card title="Home page blocks" description="Sections stacked top to bottom on your home page. With none turned on, your home page message is shown instead.">
+                {typeof blockError === "string" && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{blockError}</p>}
                 <BlockList blocks={(blockRows ?? []) as HomeBlock[]} />
               </Card>
             )}
