@@ -3,7 +3,7 @@ import { Icon, LibraryIcon } from "@/components/icons";
 import { CountUp } from "./count-up";
 import { PhotoCarousel } from "./photo-carousel";
 import { sanitizeRichText } from "@/lib/richtext";
-import { configItems, configList, configText, libraryKey, type HomeBlock } from "@/lib/blocks";
+import { AVAILABILITY, configItems, configList, configText, libraryKey, type HomeBlock } from "@/lib/blocks";
 
 type Urls = Record<string, string>;
 // A row's own upload, or else the shared-library logo they picked.
@@ -504,6 +504,106 @@ function Values({ block }: { block: HomeBlock }) {
   );
 }
 
+function Steps({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.title || i.text);
+  if (items.length === 0) return null;
+  return (
+    <section>
+      <div className="mx-auto max-w-6xl space-y-12 px-6 py-14">
+        <SectionHead c={c} />
+        {/* Vertical on small screens, a row of columns on large ones; each step draws its own connector to the next. */}
+        <ol className="grid gap-x-6 lg:grid-cols-[repeat(var(--n),minmax(0,1fr))]" style={{ "--n": items.length } as React.CSSProperties}>
+          {items.map((i, n) => (
+            <li key={n} className="relative flex gap-4 pb-8 last:pb-0 lg:flex-col lg:items-center lg:gap-3 lg:pb-0 lg:text-center">
+              <span className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-bold text-white" style={{ backgroundColor: THEME }}>{n + 1}</span>
+              {n < items.length - 1 && <span aria-hidden className="absolute bottom-0 left-5 top-10 w-0.5 -translate-x-1/2 bg-gray-200 lg:hidden" />}
+              {n < items.length - 1 && <span aria-hidden className="absolute left-[calc(50%+1.5rem)] top-5 hidden h-0.5 w-[calc(100%-1.5rem)] bg-gray-200 lg:block" />}
+              <div className="space-y-1">
+                {i.title && <h3 className="text-lg font-semibold text-gray-900">{i.title}</h3>}
+                {i.text && <p className="leading-relaxed text-gray-600">{i.text}</p>}
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+// Native <details>: opens and closes without any script and works with the keyboard and screen readers.
+function Faq({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.question);
+  if (items.length === 0) return null;
+  return (
+    <section className="bg-gray-50">
+      <div className="mx-auto max-w-3xl space-y-8 px-6 py-14">
+        <SectionHead c={c} />
+        <div className="space-y-3">
+          {items.map((i, n) => (
+            <details key={n} className="group rounded-2xl bg-white shadow-sm ring-1 ring-gray-900/5">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 p-5 text-lg font-medium text-gray-900 [&::-webkit-details-marker]:hidden">
+                {i.question}
+                <Icon name="chevron-down" className="h-5 w-5 shrink-0 text-gray-400 transition-transform group-open:rotate-180" />
+              </summary>
+              {i.answer && <p className="whitespace-pre-line px-5 pb-5 leading-relaxed text-gray-600">{i.answer}</p>}
+            </details>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function FirstDay({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.text);
+  const body = sanitizeRichText(configText(c, "body"));
+  return (
+    <section style={{ backgroundColor: `color-mix(in srgb, ${THEME} 7%, white)` }}>
+      <div className={`mx-auto grid max-w-6xl items-center gap-10 px-6 py-16 ${items.length > 0 ? "md:grid-cols-2" : "max-w-3xl"}`}>
+        <div className="space-y-4">
+          {configText(c, "heading") && <h2 className="text-3xl font-semibold" style={{ color: THEME }}>{configText(c, "heading")}</h2>}
+          <div className="rich text-lg leading-relaxed text-gray-700" dangerouslySetInnerHTML={{ __html: body }} />
+        </div>
+        {items.length > 0 && (
+          <div className="space-y-4 rounded-3xl bg-white p-7 shadow-sm ring-1 ring-gray-900/5">
+            {configText(c, "list_heading") && <h3 className="text-lg font-semibold text-gray-900">{configText(c, "list_heading")}</h3>}
+            <ul className="space-y-3">
+              {items.map((i, n) => (
+                <li key={n} className="flex items-start gap-3 text-gray-700">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white" style={{ backgroundColor: THEME }}><Icon name="check" className="h-3.5 w-3.5" /></span>
+                  {i.text}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Availability({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const look = AVAILABILITY[configText(c, "status") as keyof typeof AVAILABILITY] ?? AVAILABILITY.accepting;
+  const link = configText(c, "link");
+  return (
+    <section>
+      <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-center gap-4 px-6 py-8">
+        <span className="inline-flex items-center gap-2.5 rounded-full px-5 py-2.5 font-medium text-gray-900 ring-1" style={{ backgroundColor: look.tint, ["--tw-ring-color" as string]: look.ring }}>
+          <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: look.dot }} />
+          {configText(c, "message") || look.text}
+        </span>
+        {link && configText(c, "link_label") && (
+          <SmartLink href={link} className={buttonBase} style={{ backgroundColor: THEME, color: "#fff" }}>{configText(c, "link_label")}</SmartLink>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export function BlockView({ block, urls }: { block: HomeBlock; urls: Urls }) {
   switch (block.type) {
     case "hero": return <Hero block={block} urls={urls} />;
@@ -516,6 +616,10 @@ export function BlockView({ block, urls }: { block: HomeBlock; urls: Urls }) {
     case "ages": return <Ages block={block} />;
     case "approach": return <Approach block={block} urls={urls} />;
     case "values": return <Values block={block} />;
+    case "steps": return <Steps block={block} />;
+    case "faq": return <Faq block={block} />;
+    case "first_day": return <FirstDay block={block} />;
+    case "availability": return <Availability block={block} />;
     case "photos": return <Photos block={block} urls={urls} />;
     case "credentials": return <Credentials block={block} urls={urls} />;
     case "stats": return <Stats block={block} />;

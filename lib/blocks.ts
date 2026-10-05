@@ -38,6 +38,7 @@ export const BLOCK_GROUPS = [
   { key: "top", label: "Top of page" },
   { key: "trust", label: "Trust & credibility" },
   { key: "services", label: "What we do" },
+  { key: "start", label: "Getting started" },
   { key: "content", label: "Content & community" },
 ] as const;
 export type BlockGroup = (typeof BLOCK_GROUPS)[number]["key"];
@@ -172,6 +173,83 @@ export const BLOCK_TYPES = [
       { key: "note", label: "Small print", kind: "text", placeholder: "Details changed to protect privacy." },
     ],
     defaults: { heading: "Progress families see", items: [{ title: "From a few words to full sentences", text: "Within a year of starting, a 4-year-old went from using a handful of words to telling his parents about his day." }, { title: "Calmer mornings", text: "A family worked with their team on a visual routine, and school drop-off tantrums dropped from daily to rare." }], note: "Details changed to protect privacy. Every child's progress is different." },
+  },
+  {
+    type: "steps",
+    group: "start",
+    label: "How it works",
+    hint: "Numbered steps from first contact to starting services",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Getting started is simple" },
+      { key: "subhead", label: "Subheading", kind: "text" },
+      { key: "items", label: "Steps", kind: "list", itemLabel: "step", max: 6, fields: [{ key: "title", label: "Title", kind: "text", placeholder: "Contact us" }, { key: "text", label: "Description", kind: "textarea" }] },
+    ],
+    defaults: {
+      heading: "Getting started is simple",
+      subhead: "",
+      items: [
+        { title: "Contact us", text: "Tell us a little about your child. It takes about five minutes." },
+        { title: "Intake call", text: "We'll answer your questions and check your insurance coverage." },
+        { title: "Assessment", text: "We get to know your child and your goals as a family." },
+        { title: "Treatment plan", text: "We build an individualized plan together and review it with you." },
+        { title: "Begin services", text: "Sessions start, with regular updates on progress." },
+      ],
+    },
+  },
+  {
+    type: "faq",
+    group: "start",
+    label: "FAQ",
+    hint: "Common questions that open and close when clicked",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Frequently asked questions" },
+      { key: "items", label: "Questions", kind: "list", itemLabel: "question", max: 20, fields: [{ key: "question", label: "Question", kind: "text" }, { key: "answer", label: "Answer", kind: "textarea" }] },
+    ],
+    defaults: {
+      heading: "Frequently asked questions",
+      items: [
+        { question: "Does insurance cover ABA therapy?", answer: "Most plans do, including Medicaid in many states. We'll verify your benefits and explain any costs before services begin." },
+        { question: "How many hours per week will my child need?", answer: "It depends on your child's needs and goals. Your assessment will recommend a schedule, and we adjust it as your child progresses." },
+        { question: "What does a session look like?", answer: "Mostly play. Your child's therapist builds skills through games and activities your child enjoys, and tracks progress along the way." },
+        { question: "Can I watch or take part in sessions?", answer: "Yes. Parent involvement is a big part of lasting progress, and we'll coach you along the way." },
+      ],
+    },
+  },
+  {
+    type: "first_day",
+    group: "start",
+    label: "What to expect on day one",
+    hint: "A reassuring explainer and checklist for nervous parents",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "What to expect on your first day" },
+      { key: "body", label: "Text", kind: "richtext" },
+      { key: "list_heading", label: "Checklist heading", kind: "text", placeholder: "What to bring" },
+      { key: "items", label: "Checklist", kind: "list", itemLabel: "item", max: 10, fields: [{ key: "text", label: "Item", kind: "text" }] },
+    ],
+    defaults: {
+      heading: "What to expect on your first day",
+      body: "<p>Your first visit is a chance to get comfortable. There's no pressure and no \"test\" for your child. We'll spend time meeting each other, playing, and talking through your goals.</p><p>You're welcome to stay the whole time, and we'll answer every question you have.</p>",
+      list_heading: "What to bring",
+      items: [
+        { text: "Your insurance card" },
+        { text: "Any recent evaluations or reports" },
+        { text: "Your child's favorite toy or snack" },
+        { text: "Your questions" },
+      ],
+    },
+  },
+  {
+    type: "availability",
+    group: "start",
+    label: "Availability status",
+    hint: "A badge showing whether you're accepting new clients, have a waitlist, or are full",
+    fields: [
+      { key: "status", label: "Status", kind: "choice", options: [{ value: "accepting", label: "Accepting new clients" }, { value: "waitlist", label: "Waitlist" }, { value: "closed", label: "Not accepting" }] },
+      { key: "message", label: "Message (optional)", kind: "text", placeholder: "Leave blank to use the standard wording" },
+      { key: "link_label", label: "Button text", kind: "text", placeholder: "Request an intake" },
+      { key: "link", label: "Button link", kind: "link" },
+    ],
+    defaults: { status: "accepting", message: "", link_label: "", link: "" },
   },
   {
     type: "photos",
@@ -355,6 +433,13 @@ export function collectLibraryIds(c: BlockConfig): string[] {
 // The key renderers use to look up a library logo's URL in the same path-to-URL map as uploads.
 export const libraryKey = (id: string | undefined) => (id ? `lib:${id}` : "");
 
+// Standard wording and colors for the availability badge.
+export const AVAILABILITY = {
+  accepting: { text: "Currently accepting new clients", dot: "#16a34a", tint: "#f0fdf4", ring: "#bbf7d0" },
+  waitlist: { text: "Waitlist open: join to reserve a spot", dot: "#d97706", tint: "#fffbeb", ring: "#fde68a" },
+  closed: { text: "Not accepting new clients right now", dot: "#6b7280", tint: "#f9fafb", ring: "#e5e7eb" },
+} as const;
+
 // A short line for the dashboard list.
 export function blockSummary(type: string, c: BlockConfig) {
   if (type === "announcement") return configText(c, "text");
@@ -364,8 +449,10 @@ export function blockSummary(type: string, c: BlockConfig) {
   if (["testimonials", "outcomes"].includes(type)) return configText(c, "heading");
   if (type === "photos") return configText(c, "heading") || `${configList(c).filter((i) => i.photo_path).length} photos`;
   if (type === "quick_actions") return configItems(c).filter((i) => i.label).map((i) => i.label).join(" · ");
-  if (type === "approach") return configText(c, "heading");
-  if (["services", "services_list", "settings", "ages", "values"].includes(type)) {
+  if (type === "approach" || type === "first_day") return configText(c, "heading");
+  if (type === "faq") return configList(c).map((i) => i.question).filter(Boolean).join(" · ");
+  if (type === "availability") return configText(c, "message") || AVAILABILITY[configText(c, "status") as keyof typeof AVAILABILITY]?.text || "";
+  if (["services", "services_list", "settings", "ages", "values", "steps"].includes(type)) {
     return configList(c).map((i) => i.title || i.name || i.label).filter(Boolean).join(" · ");
   }
   return configText(c, "headline");
