@@ -791,6 +791,92 @@ function Locations({ block }: { block: HomeBlock }) {
   );
 }
 
+// Straight embed: the visitor talks to the form provider directly, and nothing they type touches our server or database.
+// Sandboxed so the framed page can run its own form but can't navigate or script ours.
+function ContactForm({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const src = configText(c, "embed");
+  if (!src) return null;
+  return (
+    <section className="bg-gray-50">
+      <div className="mx-auto max-w-3xl space-y-8 px-6 py-14">
+        <div className="space-y-2 text-center">
+          {heading(configText(c, "heading"))}
+          {configText(c, "intro") && <p className="text-lg text-gray-600">{configText(c, "intro")}</p>}
+        </div>
+        <div className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-gray-900/5">
+          <iframe
+            title={configText(c, "heading") || "Form"}
+            src={src}
+            loading="lazy"
+            sandbox="allow-forms allow-scripts allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+            referrerPolicy="strict-origin-when-cross-origin"
+            className="block w-full border-0"
+            style={{ height: `${Number(configText(c, "height")) || 700}px` }}
+          />
+        </div>
+        {/* Some providers refuse to be framed, so a plain link is always available. */}
+        <p className="text-center text-sm text-gray-500">
+          Form not loading? <a href={src} target="_blank" rel="noopener noreferrer" className="font-medium underline underline-offset-4" style={{ color: THEME }}>Open it in a new page</a>.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+function ContactInfo({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const dark = configText(c, "style") === "dark";
+  const phone = configText(c, "phone");
+  const email = configText(c, "email");
+  const address = configText(c, "address");
+  const hours = configText(c, "hours");
+  const rows = [
+    phone && { icon: "phone" as const, text: phone, href: `tel:${phone.replace(/[^+0-9]/g, "")}` },
+    email && { icon: "mail" as const, text: email, href: `mailto:${email}` },
+    address && { icon: "map-pin" as const, text: address, href: `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}` },
+    hours && { icon: "clock", text: hours, href: "" },
+  ].filter(Boolean) as { icon: "phone" | "mail" | "map-pin" | "clock"; text: string; href: string }[];
+  if (rows.length === 0) return null;
+  return (
+    <section style={dark ? { backgroundColor: THEME, color: "#fff" } : { backgroundColor: `color-mix(in srgb, ${THEME} 8%, white)`, color: THEME }}>
+      <ul className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-10 gap-y-3 px-6 py-5 font-medium">
+        {rows.map((r) => {
+          const inner = (
+            <>
+              {r.icon === "clock" ? <LibraryIcon name="clock" className="h-5 w-5 shrink-0" /> : <Icon name={r.icon} className="h-5 w-5 shrink-0" />}
+              <span>{r.text}</span>
+            </>
+          );
+          return (
+            <li key={r.icon}>
+              {r.href ? (
+                <a href={r.href} {...(r.icon === "map-pin" ? { target: "_blank", rel: "noopener noreferrer" } : {})} className="flex items-center gap-2 underline-offset-4 hover:underline">{inner}</a>
+              ) : (
+                <span className="flex items-center gap-2">{inner}</span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+function Cta({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const dark = configText(c, "style") !== "light";
+  return (
+    <section style={dark ? { backgroundColor: THEME, color: "#fff" } : { backgroundColor: `color-mix(in srgb, ${THEME} 10%, white)`, color: THEME }}>
+      <div className="mx-auto max-w-4xl space-y-6 px-6 py-16 text-center">
+        {configText(c, "heading") && <h2 className="text-3xl font-bold sm:text-4xl">{configText(c, "heading")}</h2>}
+        {configText(c, "text") && <p className="mx-auto max-w-2xl text-lg leading-relaxed opacity-90">{configText(c, "text")}</p>}
+        <Buttons c={c} onDark={dark} center />
+      </div>
+    </section>
+  );
+}
+
 export function BlockView({ block, urls }: { block: HomeBlock; urls: Urls }) {
   switch (block.type) {
     case "hero": return <Hero block={block} urls={urls} />;
@@ -812,6 +898,9 @@ export function BlockView({ block, urls }: { block: HomeBlock; urls: Urls }) {
     case "careers": return <Careers block={block} />;
     case "positions": return <Positions block={block} />;
     case "locations": return <Locations block={block} />;
+    case "contact_form": return <ContactForm block={block} />;
+    case "contact_info": return <ContactInfo block={block} />;
+    case "cta": return <Cta block={block} />;
     case "photos": return <Photos block={block} urls={urls} />;
     case "credentials": return <Credentials block={block} urls={urls} />;
     case "stats": return <Stats block={block} />;

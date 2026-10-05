@@ -260,6 +260,15 @@ export function BlockForm({ block, fields, urls, pages, library }: { block: Home
               </div>
             );
           }
+          if (f.kind === "embed") {
+            return (
+              <label key={f.key} className="block space-y-1">
+                <span className={label}>{f.label}</span>
+                <textarea name={f.key} defaultValue={configText(c, f.key)} rows={4} placeholder='https://… or <iframe src="https://…"></iframe>' className={`${input} font-mono text-sm`} />
+                {f.hint && <span className="block text-xs text-gray-500">{f.hint}</span>}
+              </label>
+            );
+          }
           if (f.kind === "richtext") return <RichField key={f.key} name={f.key} label={f.label} initial={configText(c, f.key)} />;
           if (f.kind === "textarea") {
             return (

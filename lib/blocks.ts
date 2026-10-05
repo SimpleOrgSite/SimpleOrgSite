@@ -23,6 +23,7 @@ type Field =
   | { key: string; label: string; kind: "list"; itemLabel: string; max: number; fields: readonly ListSub[]; hint?: string }
   | { key: string; label: string; kind: "image"; hint?: string }
   | { key: string; label: string; kind: "richtext" }
+  | { key: string; label: string; kind: "embed"; hint?: string }
   | { key: string; label: string; kind: "choice"; options: readonly { value: string; label: string }[] }
   | { key: string; label: string; kind: "actions" };
 export type BlockField = Field;
@@ -324,6 +325,46 @@ export const BLOCK_TYPES = [
     defaults: { heading: "Find us", map: "show", items: [{ name: "Main office", address: "123 Main Street\nAustin, TX 78701", phone: "", hours: "Monday–Friday, 8am–6pm" }], areas_heading: "Areas we serve", areas: "Travis County\nWilliamson County\nHays County" },
   },
   {
+    type: "contact_form",
+    group: "locations",
+    label: "Contact / intake form",
+    hint: "Your own form from Jotform, Google Forms, Typeform or similar, embedded on the page",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Request an intake" },
+      { key: "intro", label: "Intro (optional)", kind: "text", placeholder: "Tell us a little about your child and we'll be in touch." },
+      { key: "embed", label: "Form embed code or link", kind: "embed", hint: "In your form provider, choose Share or Embed and paste the embed code or the link here. Answers go straight to your provider. We never see or store them." },
+      { key: "height", label: "Form height", kind: "choice", options: [{ value: "500", label: "Short" }, { value: "700", label: "Medium" }, { value: "900", label: "Tall" }, { value: "1200", label: "Extra tall" }] },
+    ],
+    defaults: { heading: "Request an intake", intro: "", embed: "", height: "700" },
+  },
+  {
+    type: "contact_info",
+    group: "locations",
+    label: "Contact info bar",
+    hint: "Phone, email, address and hours in one strip, all click to call or open",
+    fields: [
+      { key: "phone", label: "Phone", kind: "text", placeholder: "(555) 123-4567" },
+      { key: "email", label: "Email", kind: "text", placeholder: "hello@yourpractice.com" },
+      { key: "address", label: "Address", kind: "text", placeholder: "123 Main Street, Austin, TX 78701" },
+      { key: "hours", label: "Hours", kind: "text", placeholder: "Mon–Fri, 8am–6pm" },
+      { key: "style", label: "Style", kind: "choice", options: [{ value: "light", label: "Light (tinted background)" }, { value: "dark", label: "Dark (theme color background)" }] },
+    ],
+    defaults: { phone: "", email: "", address: "", hours: "Mon–Fri, 8am–6pm", style: "light" },
+  },
+  {
+    type: "cta",
+    group: "locations",
+    label: "Call-to-action banner",
+    hint: "A full-width color band like “Ready to get started?” with buttons",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Ready to get started?" },
+      { key: "text", label: "Text", kind: "textarea" },
+      ...buttonFields,
+      { key: "style", label: "Style", kind: "choice", options: [{ value: "dark", label: "Dark (theme color background)" }, { value: "light", label: "Light (tinted background)" }] },
+    ],
+    defaults: { heading: "Ready to get started?", text: "Reach out today. We'll answer your questions and walk you through the next steps.", primary_label: "Request an intake", primary_link: "", secondary_label: "", secondary_link: "", style: "dark" },
+  },
+  {
     type: "photos",
     group: "content",
     label: "Photo carousel",
@@ -512,6 +553,21 @@ export const AVAILABILITY = {
   closed: { text: "Not accepting new clients right now", dot: "#6b7280", tint: "#f9fafb", ring: "#e5e7eb" },
 } as const;
 
+// Form embeds are shown in our own sandboxed <iframe>, never as pasted HTML. Accepts either the provider's
+// "<iframe src=...>" snippet or a plain link; returns the https URL, "" for none, or null if unusable.
+export function normalizeEmbed(raw: string): string | null {
+  const v = raw.trim();
+  if (!v) return "";
+  const src = /^<iframe[\s>]/i.test(v) ? /\ssrc\s*=\s*["']([^"']+)["']/i.exec(v)?.[1] : v;
+  if (!src) return null;
+  try {
+    const url = new URL(src.replace(/&amp;/g, "&"));
+    return url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
 // A short line for the dashboard list.
 export function blockSummary(type: string, c: BlockConfig) {
   if (type === "announcement") return configText(c, "text");
@@ -521,6 +577,11 @@ export function blockSummary(type: string, c: BlockConfig) {
   if (["testimonials", "outcomes"].includes(type)) return configText(c, "heading");
   if (type === "photos") return configText(c, "heading") || `${configList(c).filter((i) => i.photo_path).length} photos`;
   if (type === "quick_actions") return configItems(c).filter((i) => i.label).map((i) => i.label).join(" · ");
+  if (type === "contact_form") {
+    try { return configText(c, "embed") ? `Form from ${new URL(configText(c, "embed")).hostname}` : "No form added yet"; } catch { return ""; }
+  }
+  if (type === "contact_info") return [configText(c, "phone"), configText(c, "email")].filter(Boolean).join(" · ");
+  if (type === "cta") return configText(c, "heading");
   if (type === "letter") return configText(c, "name") || configText(c, "heading");
   if (type === "careers") return configText(c, "heading");
   if (type === "approach" || type === "first_day") return configText(c, "heading");
