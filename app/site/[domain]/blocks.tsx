@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Icon, LibraryIcon } from "@/components/icons";
 import { CountUp } from "./count-up";
+import { PhotoCarousel } from "./photo-carousel";
 import { configItems, configList, configText, type HomeBlock } from "@/lib/blocks";
 
 type Urls = Record<string, string>;
@@ -139,39 +140,71 @@ function QuickActions({ block }: { block: HomeBlock }) {
 
 const heading = (text: string) => (text ? <h2 className="text-center text-2xl font-semibold sm:text-3xl" style={{ color: THEME }}>{text}</h2> : null);
 
-// Logos when there is one, plain text otherwise, so a plan can be listed before its logo is uploaded.
+// A plan shows as its logo when there is one, plain text otherwise, so it can be listed before its logo is uploaded.
+function PlanLogo({ plan, urls }: { plan: Record<string, string>; urls: Urls }) {
+  const logo = urlOf(urls, plan.logo_path);
+  return logo ? (
+    // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
+    <img src={logo} alt={plan.name || ""} className="max-h-12 w-auto max-w-[9rem] object-contain" />
+  ) : (
+    <span className="whitespace-nowrap rounded-full bg-gray-100 px-4 py-2 font-medium text-gray-700">{plan.name}</span>
+  );
+}
+
 function Insurance({ block, urls }: { block: HomeBlock; urls: Urls }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.name || i.logo_path);
   if (items.length === 0) return null;
   const link = configText(c, "link");
+  const scroll = configText(c, "layout") === "scroll";
+  // Each half of the marquee must be wider than the screen or a gap shows, so a short list is repeated to fill it.
+  const half = Array.from({ length: Math.ceil(10 / items.length) }, () => items).flat();
   return (
     <section>
-      <div className="mx-auto max-w-5xl space-y-8 px-6 py-14">
-        <div className="space-y-2 text-center">
+      <div className="space-y-8 py-14">
+        <div className="mx-auto max-w-5xl space-y-2 px-6 text-center">
           {heading(configText(c, "heading"))}
           {configText(c, "subhead") && <p className="text-lg text-gray-600">{configText(c, "subhead")}</p>}
         </div>
-        <ul className="flex flex-wrap items-center justify-center gap-x-10 gap-y-6">
-          {items.map((i, n) => {
-            const logo = urlOf(urls, i.logo_path);
-            return (
-              <li key={n} className="flex h-12 items-center">
-                {logo ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
-                  <img src={logo} alt={i.name || ""} className="max-h-12 w-auto max-w-[9rem] object-contain" />
-                ) : (
-                  <span className="rounded-full bg-gray-100 px-4 py-2 font-medium text-gray-700">{i.name}</span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+        {scroll ? (
+          <div className="marquee overflow-hidden" style={{ maskImage: "linear-gradient(to right, transparent, #000 8%, #000 92%, transparent)" }}>
+            <ul className="marquee-track flex w-max items-center" style={{ "--dur": `${half.length * 4}s` } as React.CSSProperties}>
+              {[0, 1].flatMap((copy) =>
+                half.map((plan, n) => (
+                  <li key={`${copy}-${n}`} aria-hidden={copy === 1} className="flex h-16 items-center px-7"><PlanLogo plan={plan} urls={urls} /></li>
+                )),
+              )}
+            </ul>
+          </div>
+        ) : (
+          <ul className="mx-auto grid max-w-5xl grid-cols-2 gap-4 px-6 sm:grid-cols-3 lg:grid-cols-4">
+            {items.map((plan, n) => (
+              <li key={n} className="flex h-24 items-center justify-center rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-900/5"><PlanLogo plan={plan} urls={urls} /></li>
+            ))}
+          </ul>
+        )}
         {link && (
-          <div className="text-center">
+          <div className="px-6 text-center">
             <SmartLink href={link} className={buttonBase} style={{ backgroundColor: THEME, color: "#fff" }}>{configText(c, "link_label") || "Verify my coverage"}</SmartLink>
           </div>
         )}
+      </div>
+    </section>
+  );
+}
+
+function Photos({ block, urls }: { block: HomeBlock; urls: Urls }) {
+  const c = block.config;
+  const slides = configList(c).flatMap((i) => {
+    const url = urlOf(urls, i.photo_path);
+    return url ? [{ url, caption: i.caption ?? "" }] : [];
+  });
+  if (slides.length === 0) return null;
+  return (
+    <section>
+      <div className="mx-auto max-w-6xl space-y-8 px-6 py-14">
+        {heading(configText(c, "heading"))}
+        <PhotoCarousel slides={slides} seconds={Number(configText(c, "seconds")) || 6} />
       </div>
     </section>
   );
@@ -312,6 +345,7 @@ export function BlockView({ block, urls }: { block: HomeBlock; urls: Urls }) {
     case "hero_split": return <HeroSplit block={block} urls={urls} />;
     case "quick_actions": return <QuickActions block={block} />;
     case "insurance": return <Insurance block={block} urls={urls} />;
+    case "photos": return <Photos block={block} urls={urls} />;
     case "credentials": return <Credentials block={block} urls={urls} />;
     case "stats": return <Stats block={block} />;
     case "testimonials": return <Testimonials block={block} urls={urls} />;

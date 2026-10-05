@@ -29,3 +29,12 @@ body {
 .rich > :last-child { margin-bottom: 0; }
 .rich a { color: var(--theme-color, #2563eb); text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px; transition: text-decoration-thickness 0.15s; }
 .rich a:hover { text-decoration-thickness: 2px; }
+
+/* Endless scrolling logo row. The track holds two identical halves, so sliding it by exactly half loops seamlessly. */
+@keyframes marquee { to { transform: translateX(-50%); } }
+.marquee-track { animation: marquee var(--dur, 30s) linear infinite; }
+.marquee:hover .marquee-track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) {
+  .marquee { overflow-x: auto; }
+  .marquee-track { animation: none; }
+}

@@ -218,7 +218,7 @@ export function BlockForm({ block, fields, urls, pages }: { block: HomeBlock; fi
             return (
               <div key={f.key} className="space-y-2">
                 <span className={label}>{f.label}</span>
-                <ImageInput name={f.key} path={configText(c, `${f.key}_path`)} urls={urls} hint={f.hint ?? "PNG, JPG, WebP or SVG, under 2 MB."} />
+                <ImageInput name={f.key} path={configText(c, `${f.key}_path`)} urls={urls} hint={f.hint ?? "PNG, JPG, WebP or SVG, under 5 MB."} />
               </div>
             );
           }

@@ -86,15 +86,16 @@ export const BLOCK_TYPES = [
   {
     type: "insurance",
     label: "Insurance & funding",
-    hint: "Logos of accepted plans, with a “verify my coverage” button",
+    hint: "Logos of accepted plans as a grid or a never-ending scrolling row, with a “verify my coverage” button",
     fields: [
       { key: "heading", label: "Heading", kind: "text", placeholder: "Insurance we accept" },
       { key: "subhead", label: "Subheading", kind: "text", placeholder: "We work with most major plans, including Medicaid." },
+      { key: "layout", label: "Layout", kind: "choice", options: [{ value: "grid", label: "Grid of logos" }, { value: "scroll", label: "Scrolling row (never ends)" }] },
       { key: "items", label: "Plans", kind: "list", itemLabel: "plan", max: 16, hint: "Add a logo, or just a name to show as text.", fields: [{ key: "name", label: "Plan name", kind: "text", placeholder: "Aetna" }, { key: "logo", label: "Logo", kind: "image" }] },
       { key: "link_label", label: "Button text", kind: "text", placeholder: "Verify my coverage" },
       { key: "link", label: "Button link", kind: "link", placeholder: "https://… or tel:5551234567" },
     ],
-    defaults: { heading: "Insurance we accept", subhead: "We work with most major plans, including Medicaid.", items: [{ name: "Medicaid" }, { name: "Aetna" }, { name: "Blue Cross Blue Shield" }, { name: "Cigna" }], link_label: "Verify my coverage", link: "" },
+    defaults: { heading: "Insurance we accept", layout: "grid", subhead: "We work with most major plans, including Medicaid.", items: [{ name: "Medicaid" }, { name: "Aetna" }, { name: "Blue Cross Blue Shield" }, { name: "Cigna" }], link_label: "Verify my coverage", link: "" },
   },
   {
     type: "credentials",
@@ -150,6 +151,17 @@ export const BLOCK_TYPES = [
     ],
     defaults: { heading: "Progress families see", items: [{ title: "From a few words to full sentences", text: "Within a year of starting, a 4-year-old went from using a handful of words to telling his parents about his day." }, { title: "Calmer mornings", text: "A family worked with their team on a visual routine, and school drop-off tantrums dropped from daily to rare." }], note: "Details changed to protect privacy. Every child's progress is different." },
   },
+  {
+    type: "photos",
+    label: "Photo carousel",
+    hint: "Large photos shown one at a time, sliding automatically",
+    fields: [
+      { key: "heading", label: "Heading (optional)", kind: "text", placeholder: "Inside our center" },
+      { key: "seconds", label: "Seconds per photo", kind: "choice", options: [{ value: "4", label: "4" }, { value: "6", label: "6" }, { value: "8", label: "8" }, { value: "10", label: "10" }] },
+      { key: "items", label: "Photos", kind: "list", itemLabel: "photo", max: 12, hint: "Landscape photos work best. They're shown wide, and cropped to fit.", fields: [{ key: "photo", label: "Photo", kind: "image" }, { key: "caption", label: "Caption (optional)", kind: "text" }] },
+    ],
+    defaults: { heading: "", seconds: "6", items: [] },
+  },
 ] as const;
 
 export type BlockType = (typeof BLOCK_TYPES)[number]["type"];
@@ -198,6 +210,7 @@ export function blockSummary(type: string, c: BlockConfig) {
   if (type === "stats") return configList(c).map((i) => `${i.value ?? ""} ${i.label ?? ""}`.trim()).join(" · ");
   if (["insurance", "credentials"].includes(type)) return configList(c).map((i) => i.name).filter(Boolean).join(" · ");
   if (["testimonials", "outcomes"].includes(type)) return configText(c, "heading");
+  if (type === "photos") return configText(c, "heading") || `${configList(c).filter((i) => i.photo_path).length} photos`;
   if (type === "quick_actions") return configItems(c).filter((i) => i.label).map((i) => i.label).join(" · ");
   return configText(c, "headline");
 }

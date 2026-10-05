@@ -351,7 +351,7 @@ export async function moveNewsItem(id: string, by: -1 | 1) {
   revalidatePath("/dashboard");
 }
 
-// Blocks share the logos bucket (public, image-only, 2 MB), in the owner's own folder.
+// Blocks share the logos bucket (public, image-only, 5 MB; logos have their own 2 MB check), in the owner's own folder.
 async function currentSite() {
   const { supabase, user } = await currentUser();
   const { data: site } = await supabase.from("sites").select("id").eq("owner_id", user.id).maybeSingle();
@@ -374,7 +374,7 @@ export async function addBlock(type: string) {
 async function uploadImage(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, file: File): Promise<{ path: string } | { error: string }> {
   const ext = IMAGE_TYPES[file.type];
   if (!ext) return { error: "Images must be a PNG, JPG, WebP or SVG." };
-  if (file.size > 2 * 1024 * 1024) return { error: "Images must be under 2 MB." };
+  if (file.size > 5 * 1024 * 1024) return { error: "Images must be under 5 MB." };
   const path = `${userId}/block-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
   const { error } = await supabase.storage.from("logos").upload(path, file, { contentType: file.type });
   return error ? { error: error.message } : { path };
