@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { SITE_MARKER } from "@/lib/domain";
@@ -5,6 +6,18 @@ import { logoHeight } from "@/lib/logo";
 import { AnnouncementBar } from "./blocks";
 import { SiteNav, type NavItem } from "./site-nav";
 import { getAboutSections, getHomeBlocks, isVisible, getDirectors, getSite, logoUrl } from "@/lib/site";
+
+// Browser tab: the company's name and logo. Without a logo, a letter on the theme color stands in rather than the platform default.
+export async function generateMetadata({ params }: LayoutProps<"/site/[domain]">): Promise<Metadata> {
+  const { domain } = await params;
+  const site = await getSite(domain);
+  if (!site) return {};
+  const name = site.site_name || decodeURIComponent(domain);
+  const logo = await logoUrl(site.logo_path);
+  const letter = (name.trim()[0] ?? "?").toUpperCase().replace(/[<>&"]/g, "");
+  const fallback = `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="14" fill="${site.theme_color}"/><text x="32" y="44" font-family="Arial,sans-serif" font-size="36" font-weight="700" fill="#fff" text-anchor="middle">${letter}</text></svg>`)}`;
+  return { title: name, icons: { icon: logo ?? fallback } };
+}
 
 export default async function SiteLayout({ children, params }: LayoutProps<"/site/[domain]">) {
   const { domain } = await params;

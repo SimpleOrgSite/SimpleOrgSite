@@ -160,9 +160,10 @@ export const BLOCK_TYPES = [
     fields: [
       { key: "heading", label: "Heading (optional)", kind: "text", placeholder: "Inside our center" },
       { key: "seconds", label: "Seconds per photo", kind: "choice", options: [{ value: "4", label: "4" }, { value: "6", label: "6" }, { value: "8", label: "8" }, { value: "10", label: "10" }] },
+      { key: "arrows", label: "Previous / next buttons", kind: "choice", options: [{ value: "show", label: "Show" }, { value: "hide", label: "Hide" }] },
       { key: "items", label: "Photos", kind: "list", itemLabel: "photo", max: 12, hint: "Landscape photos work best. They're shown wide, and cropped to fit.", fields: [{ key: "photo", label: "Photo", kind: "image" }, { key: "caption", label: "Caption (optional)", kind: "text" }] },
     ],
-    defaults: { heading: "", seconds: "6", items: [] },
+    defaults: { heading: "", seconds: "6", arrows: "show", items: [] },
   },
 ] as const;
 

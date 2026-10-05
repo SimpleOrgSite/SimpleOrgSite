@@ -9,7 +9,7 @@ const nextFrame = (fn: () => void) => requestAnimationFrame(() => requestAnimati
 
 // One photo at a time, sliding forward on a timer. To loop forever without rewinding across every slide,
 // a copy of the first slide sits after the last: sliding onto it and then silently jumping back to the real first is invisible.
-export function PhotoCarousel({ slides, seconds }: { slides: Slide[]; seconds: number }) {
+export function PhotoCarousel({ slides, seconds, arrows }: { slides: Slide[]; seconds: number; arrows: boolean }) {
   const n = slides.length;
   const [index, setIndex] = useState(0);
   const [instant, setInstant] = useState(false); // true while jumping without animation
@@ -77,7 +77,7 @@ export function PhotoCarousel({ slides, seconds }: { slides: Slide[]; seconds: n
             </figure>
           ))}
         </div>
-        {n > 1 && (
+        {n > 1 && arrows && (
           <>
             <button type="button" aria-label="Previous photo" onClick={prev} className={`${control} left-4`}><Icon name="arrow-right" className="h-5 w-5 rotate-180" /></button>
             <button type="button" aria-label="Next photo" onClick={next} className={`${control} right-4`}><Icon name="arrow-right" className="h-5 w-5" /></button>

@@ -206,7 +206,7 @@ function Photos({ block, urls }: { block: HomeBlock; urls: Urls }) {
     <section>
       <div className="mx-auto max-w-6xl space-y-8 px-6 py-14">
         {heading(configText(c, "heading"))}
-        <PhotoCarousel slides={slides} seconds={Number(configText(c, "seconds")) || 6} />
+        <PhotoCarousel slides={slides} seconds={Number(configText(c, "seconds")) || 6} arrows={configText(c, "arrows") !== "hide"} />
       </div>
     </section>
   );
