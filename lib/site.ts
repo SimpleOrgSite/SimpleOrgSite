@@ -1,5 +1,5 @@
 import { cache } from "react";
-import type { HomeBlock } from "@/lib/blocks";
+import type { HomeBlock, LibraryLogo } from "@/lib/blocks";
 import type { NewsItem, NewsLayout } from "@/lib/news";
 import type { Director, DirectorLayout, PhotoShape } from "@/lib/directors";
 import { hasText } from "@/lib/richtext";
@@ -126,3 +126,10 @@ export async function sitePageLinks(site: Pick<Site, "id" | "about_enabled" | "a
   if (site.news_enabled) links.push({ href: "/news", label: site.news_label || "News" });
   return links;
 }
+
+// The whole shared logo library (a small, hand-managed table), with public URLs.
+export const getLibraryLogos = cache(async (): Promise<LibraryLogo[]> => {
+  const supabase = await createClient();
+  const { data } = await supabase.from("logo_library").select("id, category, name, path").order("sort_order").order("name");
+  return (data ?? []).map(({ path, ...row }) => ({ ...row, url: supabase.storage.from("logo-library").getPublicUrl(path).data.publicUrl }));
+});

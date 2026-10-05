@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState } from "react";
+import { useActionState, useRef, useState } from "react";
 import { ICON_LIBRARY } from "@/components/icon-library";
 import { Icon, LibraryIcon } from "@/components/icons";
-import { MAX_ACTIONS, configItems, configList, configText, type BlockField, type HomeBlock } from "@/lib/blocks";
+import { MAX_ACTIONS, configItems, configList, configText, type BlockField, type HomeBlock, type LibraryLogo } from "@/lib/blocks";
 import type { PageLink } from "@/lib/site";
 import { deleteBlock, saveBlock, toggleBlock, type FormState } from "../actions";
 import { button, dangerLink, file, input, label, tile } from "../ui";
@@ -12,12 +12,29 @@ import { button, dangerLink, file, input, label, tile } from "../ui";
 const iconButton = "flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:pointer-events-none disabled:opacity-30";
 
 // An image input that keeps the existing file unless a new one is chosen or "remove" is ticked.
-// "name" is both the file input and the prefix of its hidden "_path" / "_remove" companions read by saveBlock.
-function ImageInput({ name, path, urls, hint }: { name: string; path: string; urls: Record<string, string>; hint?: string }) {
+// "name" is both the file input and the prefix of its hidden "_path" / "_remove" / "_lib" companions read by saveBlock.
+// With a "library", the owner can also pick a ready-made logo from the shared logo_library table.
+function ImageInput({ name, path, urls, hint, library, libId }: { name: string; path: string; urls: Record<string, string>; hint?: string; library?: LibraryLogo[]; libId?: string }) {
   const url = path ? urls[path] : null;
+  const [picked, setPicked] = useState(library?.some((l) => l.id === libId) ? (libId as string) : "");
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const fileRef = useRef<HTMLInputElement>(null);
+  const chosen = library?.find((l) => l.id === picked);
+  const q = query.trim().toLowerCase();
+  const shown = (library ?? []).filter((l) => !q || l.name.toLowerCase().includes(q));
   return (
     <div className="space-y-2">
-      {url && (
+      <input type="hidden" name={`${name}_lib`} value={picked} />
+      {chosen && (
+        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-2 pr-3">
+          {/* eslint-disable-next-line @next/next/no-img-element -- shared library logo */}
+          <img src={chosen.url} alt="" className="h-12 w-20 object-contain" />
+          <span className="min-w-0 flex-1 truncate text-sm font-medium">{chosen.name}</span>
+          <button type="button" onClick={() => setPicked("")} className="text-sm text-gray-500 transition hover:text-red-600">Remove</button>
+        </div>
+      )}
+      {url && !chosen && (
         <div className="space-y-2">
           <input type="hidden" name={`${name}_path`} value={path} />
           {/* eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions */}
@@ -28,7 +45,45 @@ function ImageInput({ name, path, urls, hint }: { name: string; path: string; ur
           </label>
         </div>
       )}
-      <input type="file" name={name} accept="image/png,image/jpeg,image/webp,image/svg+xml" className={file} />
+      {library && library.length > 0 && (
+        <>
+          <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm font-medium transition hover:bg-gray-50">
+            Choose from our library <Icon name="chevron-down" className={`h-4 w-4 text-gray-400 transition-transform ${open ? "rotate-180" : ""}`} />
+          </button>
+          {open && (
+            <div className="space-y-3 rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+              <div className="relative">
+                <Icon name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                {/* Enter would submit the whole form, so swallow it here. */}
+                <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => e.key === "Enter" && e.preventDefault()} placeholder="Search" className={`${input} pl-10`} />
+              </div>
+              <div className="grid max-h-72 grid-cols-2 gap-2 overflow-y-auto sm:grid-cols-3">
+                {shown.map((l) => (
+                  <button
+                    key={l.id}
+                    type="button"
+                    onClick={() => {
+                      setPicked(l.id);
+                      setOpen(false);
+                      setQuery("");
+                      // A leftover file would win over the pick on save, so clear it.
+                      if (fileRef.current) fileRef.current.value = "";
+                    }}
+                    className="flex flex-col items-center gap-1.5 rounded-xl border border-gray-200 p-2 text-center transition hover:border-gray-400 hover:bg-gray-50"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element -- shared library logo */}
+                    <img src={l.url} alt="" className="h-12 w-full object-contain" />
+                    <span className="line-clamp-2 text-xs text-gray-600">{l.name}</span>
+                  </button>
+                ))}
+                {shown.length === 0 && <p className="col-span-full py-6 text-center text-sm text-gray-500">No logos match “{query}”.</p>}
+              </div>
+            </div>
+          )}
+          <p className="text-xs text-gray-500">Or upload your own:</p>
+        </>
+      )}
+      <input ref={fileRef} type="file" name={name} accept="image/png,image/jpeg,image/webp,image/svg+xml" className={file} />
       {hint !== undefined && <p className="text-xs text-gray-500">{hint}</p>}
     </div>
   );
@@ -107,7 +162,7 @@ function LinkInput({ name, defaultValue, pages, placeholder, label: ariaLabel }:
 type Row = { uid: string; values: Record<string, string> };
 
 // Repeatable rows. Inputs are uncontrolled and keyed by uid, so reordering and deleting keep what's been typed or picked.
-function ListField({ field, initial, urls }: { field: Extract<BlockField, { kind: "list" }>; initial: Record<string, string>[]; urls: Record<string, string> }) {
+function ListField({ field, initial, urls, library }: { field: Extract<BlockField, { kind: "list" }>; initial: Record<string, string>[]; urls: Record<string, string>; library: LibraryLogo[] }) {
   const [rows, setRows] = useState<Row[]>(() => initial.map((values) => ({ uid: crypto.randomUUID(), values })));
   const move = (i: number, by: -1 | 1) =>
     setRows((all) => {
@@ -137,7 +192,7 @@ function ListField({ field, initial, urls }: { field: Extract<BlockField, { kind
                 {sub.kind === "icon" ? (
                   <IconPicker name={name} defaultValue={row.values[sub.key] ?? ""} label={sub.label} />
                 ) : sub.kind === "image" ? (
-                  <ImageInput name={name} path={row.values[`${sub.key}_path`] ?? ""} urls={urls} />
+                  <ImageInput name={name} path={row.values[`${sub.key}_path`] ?? ""} urls={urls} library={sub.library ? library.filter((l) => l.category === sub.library) : undefined} libId={row.values[`${sub.key}_lib`]} />
                 ) : sub.kind === "textarea" ? (
                   <textarea name={name} defaultValue={row.values[sub.key] ?? ""} rows={3} placeholder={sub.placeholder} className={input} />
                 ) : (
@@ -163,7 +218,7 @@ function ListField({ field, initial, urls }: { field: Extract<BlockField, { kind
 }
 
 // Renders whatever fields the block type declares in lib/blocks.ts.
-export function BlockForm({ block, fields, urls, pages }: { block: HomeBlock; fields: readonly BlockField[]; urls: Record<string, string>; pages: PageLink[] }) {
+export function BlockForm({ block, fields, urls, pages, library }: { block: HomeBlock; fields: readonly BlockField[]; urls: Record<string, string>; pages: PageLink[]; library: LibraryLogo[] }) {
   const [state, action, pending] = useActionState(saveBlock.bind(null, block.id), null as FormState);
   const c = block.config;
   return (
@@ -222,7 +277,7 @@ export function BlockForm({ block, fields, urls, pages }: { block: HomeBlock; fi
               </div>
             );
           }
-          if (f.kind === "list") return <ListField key={f.key} field={f} initial={configList(c, f.key)} urls={urls} />;
+          if (f.kind === "list") return <ListField key={f.key} field={f} initial={configList(c, f.key)} urls={urls} library={library} />;
           // actions
           const items = configItems(c);
           return (

@@ -2,9 +2,11 @@ import Link from "next/link";
 import { Icon, LibraryIcon } from "@/components/icons";
 import { CountUp } from "./count-up";
 import { PhotoCarousel } from "./photo-carousel";
-import { configItems, configList, configText, type HomeBlock } from "@/lib/blocks";
+import { configItems, configList, configText, libraryKey, type HomeBlock } from "@/lib/blocks";
 
 type Urls = Record<string, string>;
+// A row's own upload, or else the shared-library logo they picked.
+const logoOf = (row: Record<string, string>, urls: Urls) => urlOf(urls, row.logo_path) ?? urlOf(urls, libraryKey(row.logo_lib));
 const urlOf = (urls: Urls, path: string | undefined) => (path ? urls[path] || null : null);
 
 const THEME = "var(--theme-color, #111827)";
@@ -142,7 +144,7 @@ const heading = (text: string) => (text ? <h2 className="text-center text-2xl fo
 
 // A plan shows as its logo when there is one, plain text otherwise, so it can be listed before its logo is uploaded.
 function PlanLogo({ plan, urls }: { plan: Record<string, string>; urls: Urls }) {
-  const logo = urlOf(urls, plan.logo_path);
+  const logo = logoOf(plan, urls);
   return logo ? (
     // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
     <img src={logo} alt={plan.name || ""} className="max-h-12 w-auto max-w-[9rem] object-contain" />
@@ -153,7 +155,7 @@ function PlanLogo({ plan, urls }: { plan: Record<string, string>; urls: Urls }) 
 
 function Insurance({ block, urls }: { block: HomeBlock; urls: Urls }) {
   const c = block.config;
-  const items = configList(c).filter((i) => i.name || i.logo_path);
+  const items = configList(c).filter((i) => i.name || i.logo_path || i.logo_lib);
   if (items.length === 0) return null;
   const link = configText(c, "link");
   const scroll = configText(c, "layout") === "scroll";
@@ -212,7 +214,7 @@ function Photos({ block, urls }: { block: HomeBlock; urls: Urls }) {
 
 function Credentials({ block, urls }: { block: HomeBlock; urls: Urls }) {
   const c = block.config;
-  const items = configList(c).filter((i) => i.name || i.logo_path);
+  const items = configList(c).filter((i) => i.name || i.logo_path || i.logo_lib);
   if (items.length === 0) return null;
   return (
     <section className="bg-gray-50">
@@ -220,7 +222,7 @@ function Credentials({ block, urls }: { block: HomeBlock; urls: Urls }) {
         {heading(configText(c, "heading"))}
         <ul className="flex flex-wrap justify-center gap-x-10 gap-y-8">
           {items.map((i, n) => {
-            const badge = urlOf(urls, i.logo_path);
+            const badge = logoOf(i, urls);
             return (
               <li key={n} className="flex w-36 flex-col items-center gap-3 text-center">
                 {badge ? (

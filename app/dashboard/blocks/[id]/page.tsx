@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { blockType, collectImagePaths, configText, type HomeBlock } from "@/lib/blocks";
-import { logoUrl, sitePageLinks, type Site } from "@/lib/site";
+import { getLibraryLogos, logoUrl, sitePageLinks, type Site } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { BlockForm } from "../block-form";
 
@@ -30,7 +30,7 @@ export default async function EditBlock({ params }: PageProps<"/dashboard/blocks
         <h1 className="text-2xl font-semibold">{configText(block.config, "internal_name") || def.label}</h1>
         {configText(block.config, "internal_name") && <p className="-mt-4 text-sm text-gray-400">{def.label}</p>}
         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5">
-          <BlockForm block={block} fields={def.fields} urls={urls} pages={await sitePageLinks(site as Site)} />
+          <BlockForm block={block} fields={def.fields} urls={urls} pages={await sitePageLinks(site as Site)} library={await getLibraryLogos()} />
         </div>
       </main>
     </div>

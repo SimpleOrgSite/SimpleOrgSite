@@ -13,7 +13,9 @@ export const iconName = (v: unknown) => (typeof v === "string" && Object.hasOwn(
 export const MAX_ACTIONS = 4;
 
 // One repeatable row inside a "list" field. An image sub-field "logo" is stored as "logo_path".
-export type ListSub = { key: string; label: string; kind: "text" | "textarea" | "image" | "icon"; placeholder?: string };
+// "library" on an image sub-field names a logo_library category the owner can pick from instead of uploading.
+export type ListSub = { key: string; label: string; kind: "text" | "textarea" | "image" | "icon"; placeholder?: string; library?: string };
+export type LibraryLogo = { id: string; category: string; name: string; url: string };
 
 type Field =
   | { key: string; label: string; kind: "text" | "textarea" | "link"; placeholder?: string; hint?: string }
@@ -91,7 +93,7 @@ export const BLOCK_TYPES = [
       { key: "heading", label: "Heading", kind: "text", placeholder: "Insurance we accept" },
       { key: "subhead", label: "Subheading", kind: "text", placeholder: "We work with most major plans, including Medicaid." },
       { key: "layout", label: "Layout", kind: "choice", options: [{ value: "grid", label: "Grid of logos" }, { value: "scroll", label: "Scrolling row (never ends)" }] },
-      { key: "items", label: "Plans", kind: "list", itemLabel: "plan", max: 16, hint: "Add a logo, or just a name to show as text.", fields: [{ key: "name", label: "Plan name", kind: "text", placeholder: "Aetna" }, { key: "logo", label: "Logo", kind: "image" }] },
+      { key: "items", label: "Plans", kind: "list", itemLabel: "plan", max: 16, hint: "Add a logo, or just a name to show as text.", fields: [{ key: "name", label: "Plan name", kind: "text", placeholder: "Aetna" }, { key: "logo", label: "Logo", kind: "image", library: "insurance" }] },
       { key: "link_label", label: "Button text", kind: "text", placeholder: "Verify my coverage" },
       { key: "link", label: "Button link", kind: "link", placeholder: "https://… or tel:5551234567" },
     ],
@@ -103,7 +105,7 @@ export const BLOCK_TYPES = [
     hint: "Badges for licensure, certifications and memberships",
     fields: [
       { key: "heading", label: "Heading", kind: "text", placeholder: "Licensed, certified, accredited" },
-      { key: "items", label: "Badges", kind: "list", itemLabel: "badge", max: 12, fields: [{ key: "name", label: "Name", kind: "text", placeholder: "BACB Certified" }, { key: "logo", label: "Badge image", kind: "image" }] },
+      { key: "items", label: "Badges", kind: "list", itemLabel: "badge", max: 12, fields: [{ key: "name", label: "Name", kind: "text", placeholder: "BACB Certified" }, { key: "logo", label: "Badge image", kind: "image", library: "credentials" }] },
     ],
     defaults: { heading: "Licensed, certified, accredited", items: [{ name: "BACB certified supervisors" }, { name: "HIPAA compliant" }, { name: "State licensed" }] },
   },
@@ -202,6 +204,19 @@ export function collectImagePaths(c: BlockConfig): string[] {
   scan(c);
   return out;
 }
+
+// Ids of shared-library logos a block uses, stored in list rows as "<key>_lib". Not files the owner holds, so never cleaned up.
+export function collectLibraryIds(c: BlockConfig): string[] {
+  const out: string[] = [];
+  for (const v of Object.values(c)) {
+    if (!Array.isArray(v)) continue;
+    for (const row of v) if (row && typeof row === "object") for (const [k, id] of Object.entries(row)) if (k.endsWith("_lib") && typeof id === "string" && id) out.push(id);
+  }
+  return out;
+}
+
+// The key renderers use to look up a library logo's URL in the same path-to-URL map as uploads.
+export const libraryKey = (id: string | undefined) => (id ? `lib:${id}` : "");
 
 // A short line for the dashboard list.
 export function blockSummary(type: string, c: BlockConfig) {

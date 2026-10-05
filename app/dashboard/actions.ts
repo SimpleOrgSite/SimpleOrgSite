@@ -6,6 +6,7 @@ import { MAX_ACTIONS, iconName, collectImagePaths, blockType, normalizeBlockLink
 import { NEWS_LAYOUTS, normalizeDate, normalizeLink, normalizeTags } from "@/lib/news";
 import { hasText, sanitizeRichText } from "@/lib/richtext";
 import { DIRECTOR_LAYOUTS, PHOTO_SHAPES } from "@/lib/directors";
+import { getLibraryLogos } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { addDomainToVercel, checkDomain, isValidDomain, normalizeDomain, removeDomainFromVercel } from "@/lib/domain";
 
@@ -438,13 +439,20 @@ export async function saveBlock(id: string, _: FormState, formData: FormData): P
       for (const uid of formData.getAll(`${f.key}__rows`).map(String).slice(0, f.max)) {
         const row: Record<string, string | null> = {};
         let filled = false;
+        let libraryName = "";
         for (const sub of f.fields) {
           const name = `${f.key}__${uid}__${sub.key}`;
           if (sub.kind === "image") {
             const res = await imageValue(name);
             if ("error" in res) return fail(res.error);
-            row[`${sub.key}_path`] = res.path;
-            filled ||= !!res.path;
+            // A logo picked from the shared library replaces any file of their own, unless they just uploaded a new one.
+            const picked = String(formData.get(`${name}_lib`) ?? "");
+            const justUploaded = uploaded.includes(res.path ?? "");
+            const hit = sub.library && picked && !justUploaded ? (await getLibraryLogos()).find((l) => l.id === picked && l.category === sub.library) : undefined;
+            row[`${sub.key}_path`] = hit ? null : res.path;
+            if (sub.library) row[`${sub.key}_lib`] = hit?.id ?? "";
+            if (hit) libraryName = hit.name;
+            filled ||= !!res.path || !!hit;
           } else if (sub.kind === "icon") {
             // An icon alone doesn't make a row worth keeping.
             row[sub.key] = iconName(formData.get(name));
@@ -453,6 +461,8 @@ export async function saveBlock(id: string, _: FormState, formData: FormData): P
             filled ||= !!row[sub.key];
           }
         }
+        // A library pick names the row for them if they left the name blank.
+        if (libraryName && "name" in row && !row.name) row.name = libraryName;
         if (filled) rows.push(row);
       }
       config[f.key] = rows;
