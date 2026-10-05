@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Icon, LibraryIcon } from "@/components/icons";
 import { CountUp } from "./count-up";
 import { PhotoCarousel } from "./photo-carousel";
+import { sanitizeRichText } from "@/lib/richtext";
 import { configItems, configList, configText, libraryKey, type HomeBlock } from "@/lib/blocks";
 
 type Urls = Record<string, string>;
@@ -341,12 +342,180 @@ function Outcomes({ block }: { block: HomeBlock }) {
   );
 }
 
+const iconCircle = (size: string) => ({ className: `flex ${size} shrink-0 items-center justify-center rounded-full`, style: { backgroundColor: `color-mix(in srgb, ${THEME} 12%, white)`, color: THEME } });
+
+function SectionHead({ c }: { c: HomeBlock["config"] }) {
+  if (!configText(c, "heading") && !configText(c, "subhead")) return null;
+  return (
+    <div className="space-y-2 text-center">
+      {heading(configText(c, "heading"))}
+      {configText(c, "subhead") && <p className="mx-auto max-w-2xl text-lg text-gray-600">{configText(c, "subhead")}</p>}
+    </div>
+  );
+}
+
+function Services({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.title || i.text);
+  if (items.length === 0) return null;
+  const card = "flex h-full flex-col gap-3 rounded-2xl bg-white p-7 shadow-sm ring-1 ring-gray-900/5 transition";
+  const inner = (i: Record<string, string>) => (
+    <>
+      {i.icon && <span {...iconCircle("h-12 w-12")}><LibraryIcon name={i.icon} className="h-6 w-6" /></span>}
+      {i.title && <h3 className="text-xl font-semibold text-gray-900">{i.title}</h3>}
+      {i.text && <p className="leading-relaxed text-gray-600">{i.text}</p>}
+      {i.link && <span className="mt-auto inline-flex items-center gap-1 pt-2 font-medium" style={{ color: THEME }}>Learn more <Icon name="arrow-right" className="h-4 w-4" /></span>}
+    </>
+  );
+  return (
+    <section className="bg-gray-50">
+      <div className="mx-auto max-w-6xl space-y-10 px-6 py-14">
+        <SectionHead c={c} />
+        <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((i, n) => (
+            <li key={n}>{i.link ? <SmartLink href={i.link} className={`${card} hover:-translate-y-0.5 hover:shadow-md`}>{inner(i)}</SmartLink> : <div className={card}>{inner(i)}</div>}</li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function ServicesList({ block, urls }: { block: HomeBlock; urls: Urls }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.title || i.text || i.image_path);
+  if (items.length === 0) return null;
+  return (
+    <section>
+      <div className="mx-auto max-w-6xl space-y-14 px-6 py-14">
+        <SectionHead c={c} />
+        {items.map((i, n) => {
+          const image = urlOf(urls, i.image_path);
+          return (
+            <div key={n} className={`grid items-center gap-8 md:gap-12 ${image ? "md:grid-cols-2" : "mx-auto max-w-3xl"}`}>
+              {/* Rows alternate which side the photo is on. */}
+              <div className={`space-y-4 ${n % 2 === 1 ? "md:order-2" : ""}`}>
+                {i.title && <h3 className="text-2xl font-semibold sm:text-3xl" style={{ color: THEME }}>{i.title}</h3>}
+                {i.text && <p className="text-lg leading-relaxed text-gray-600">{i.text}</p>}
+                {i.link && (
+                  <SmartLink href={i.link} className="inline-flex items-center gap-1.5 rounded-xl px-5 py-2.5 font-medium text-white shadow-sm transition hover:opacity-85" style={{ backgroundColor: THEME }}>
+                    {i.link_label || "Learn more"} <Icon name="arrow-right" className="h-4 w-4" />
+                  </SmartLink>
+                )}
+              </div>
+              {image && (
+                // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
+                <img src={image} alt={i.title || ""} loading="lazy" className="aspect-[4/3] w-full rounded-3xl object-cover shadow-lg" />
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function CareSettings({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.name || i.text);
+  if (items.length === 0) return null;
+  return (
+    <section>
+      <div className="mx-auto max-w-5xl space-y-10 px-6 py-14">
+        <SectionHead c={c} />
+        <ul className="grid gap-5 sm:grid-cols-2">
+          {items.map((i, n) => (
+            <li key={n} className="flex gap-5 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5">
+              {i.icon && <span {...iconCircle("h-14 w-14")}><LibraryIcon name={i.icon} className="h-7 w-7" /></span>}
+              <div className="space-y-1">
+                {i.name && <h3 className="text-xl font-semibold text-gray-900">{i.name}</h3>}
+                {i.text && <p className="leading-relaxed text-gray-600">{i.text}</p>}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function Ages({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.range || i.label);
+  if (items.length === 0) return null;
+  return (
+    <section className="bg-gray-50">
+      <div className="mx-auto max-w-6xl space-y-10 px-6 py-14">
+        <SectionHead c={c} />
+        <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-[repeat(var(--n),minmax(0,1fr))]" style={{ "--n": Math.min(items.length, 4) } as React.CSSProperties}>
+          {items.map((i, n) => (
+            <li key={n} className="space-y-2 rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-gray-900/5">
+              {i.range && <p className="text-3xl font-bold" style={{ color: THEME }}>{i.range}</p>}
+              {i.label && <h3 className="text-lg font-semibold text-gray-900">{i.label}</h3>}
+              {i.text && <p className="text-gray-600">{i.text}</p>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function Approach({ block, urls }: { block: HomeBlock; urls: Urls }) {
+  const c = block.config;
+  const image = urlOf(urls, configText(c, "image_path"));
+  const body = sanitizeRichText(configText(c, "body"));
+  const imageLeft = configText(c, "image_side") === "left";
+  return (
+    <section>
+      <div className={`mx-auto grid items-center gap-10 px-6 py-16 ${image ? "max-w-6xl md:grid-cols-2" : "max-w-3xl"}`}>
+        <div className={`space-y-4 ${imageLeft ? "md:order-2" : ""}`}>
+          {configText(c, "heading") && <h2 className="text-3xl font-semibold" style={{ color: THEME }}>{configText(c, "heading")}</h2>}
+          <div className="rich text-lg leading-relaxed text-gray-700" dangerouslySetInnerHTML={{ __html: body }} />
+        </div>
+        {image && (
+          // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
+          <img src={image} alt="" loading="lazy" className="aspect-[4/3] w-full rounded-3xl object-cover shadow-lg" />
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Values({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.title || i.text);
+  if (items.length === 0) return null;
+  return (
+    <section className="bg-gray-50">
+      <div className="mx-auto max-w-6xl space-y-10 px-6 py-14">
+        <SectionHead c={c} />
+        <ul className="grid gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+          {items.map((i, n) => (
+            <li key={n} className="flex flex-col items-center gap-3 text-center">
+              {i.icon && <span {...iconCircle("h-14 w-14")}><LibraryIcon name={i.icon} className="h-7 w-7" /></span>}
+              {i.title && <h3 className="text-xl font-semibold text-gray-900">{i.title}</h3>}
+              {i.text && <p className="max-w-xs leading-relaxed text-gray-600">{i.text}</p>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
 export function BlockView({ block, urls }: { block: HomeBlock; urls: Urls }) {
   switch (block.type) {
     case "hero": return <Hero block={block} urls={urls} />;
     case "hero_split": return <HeroSplit block={block} urls={urls} />;
     case "quick_actions": return <QuickActions block={block} />;
     case "insurance": return <Insurance block={block} urls={urls} />;
+    case "services": return <Services block={block} />;
+    case "services_list": return <ServicesList block={block} urls={urls} />;
+    case "settings": return <CareSettings block={block} />;
+    case "ages": return <Ages block={block} />;
+    case "approach": return <Approach block={block} urls={urls} />;
+    case "values": return <Values block={block} />;
     case "photos": return <Photos block={block} urls={urls} />;
     case "credentials": return <Credentials block={block} urls={urls} />;
     case "stats": return <Stats block={block} />;

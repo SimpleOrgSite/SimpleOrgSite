@@ -14,13 +14,14 @@ export const MAX_ACTIONS = 4;
 
 // One repeatable row inside a "list" field. An image sub-field "logo" is stored as "logo_path".
 // "library" on an image sub-field names a logo_library category the owner can pick from instead of uploading.
-export type ListSub = { key: string; label: string; kind: "text" | "textarea" | "image" | "icon"; placeholder?: string; library?: string };
+export type ListSub = { key: string; label: string; kind: "text" | "textarea" | "image" | "icon" | "link"; placeholder?: string; library?: string };
 export type LibraryLogo = { id: string; category: string; name: string; url: string };
 
 type Field =
   | { key: string; label: string; kind: "text" | "textarea" | "link"; placeholder?: string; hint?: string }
   | { key: string; label: string; kind: "list"; itemLabel: string; max: number; fields: readonly ListSub[]; hint?: string }
   | { key: string; label: string; kind: "image"; hint?: string }
+  | { key: string; label: string; kind: "richtext" }
   | { key: string; label: string; kind: "choice"; options: readonly { value: string; label: string }[] }
   | { key: string; label: string; kind: "actions" };
 export type BlockField = Field;
@@ -32,9 +33,19 @@ const buttonFields: Field[] = [
   { key: "secondary_link", label: "Second button link", kind: "link", placeholder: "tel:5551234567" },
 ];
 
+// Sections of the "Add a block" picker, in order. A block names its section with `group`.
+export const BLOCK_GROUPS = [
+  { key: "top", label: "Top of page" },
+  { key: "trust", label: "Trust & credibility" },
+  { key: "services", label: "What we do" },
+  { key: "content", label: "Content & community" },
+] as const;
+export type BlockGroup = (typeof BLOCK_GROUPS)[number]["key"];
+
 export const BLOCK_TYPES = [
   {
     type: "announcement",
+    group: "top",
     label: "Announcement bar",
     hint: "A thin strip above the header on every page, e.g. “Now accepting new clients”",
     fields: [
@@ -47,6 +58,7 @@ export const BLOCK_TYPES = [
   },
   {
     type: "hero",
+    group: "top",
     label: "Hero with background image",
     hint: "Big headline and buttons over a full-width photo",
     fields: [
@@ -60,6 +72,7 @@ export const BLOCK_TYPES = [
   },
   {
     type: "hero_split",
+    group: "top",
     label: "Hero with photo beside it",
     hint: "Headline and buttons on one side, a photo on the other",
     fields: [
@@ -73,6 +86,7 @@ export const BLOCK_TYPES = [
   },
   {
     type: "quick_actions",
+    group: "top",
     label: "Quick-action buttons",
     hint: "Up to four icon buttons, like Get Started, Insurance, Careers",
     fields: [{ key: "items", label: "Buttons", kind: "actions" }],
@@ -87,6 +101,7 @@ export const BLOCK_TYPES = [
   },
   {
     type: "insurance",
+    group: "trust",
     label: "Insurance & funding",
     hint: "Logos of accepted plans as a grid or a never-ending scrolling row, with a “verify my coverage” button",
     fields: [
@@ -101,6 +116,7 @@ export const BLOCK_TYPES = [
   },
   {
     type: "credentials",
+    group: "trust",
     label: "Credentials & accreditations",
     hint: "Badges for licensure, certifications and memberships",
     fields: [
@@ -111,6 +127,7 @@ export const BLOCK_TYPES = [
   },
   {
     type: "stats",
+    group: "trust",
     label: "Stats row",
     hint: "Big numbers like “400+ children served”",
     fields: [
@@ -122,6 +139,7 @@ export const BLOCK_TYPES = [
   },
   {
     type: "testimonials",
+    group: "trust",
     label: "Testimonials",
     hint: "Several parent quotes, as a grid or a swipeable row",
     fields: [
@@ -133,6 +151,7 @@ export const BLOCK_TYPES = [
   },
   {
     type: "testimonial",
+    group: "trust",
     label: "Featured testimonial",
     hint: "One large pull quote",
     fields: [
@@ -144,6 +163,7 @@ export const BLOCK_TYPES = [
   },
   {
     type: "outcomes",
+    group: "trust",
     label: "Outcomes & success stories",
     hint: "Short, anonymized results that show what progress looks like",
     fields: [
@@ -155,6 +175,7 @@ export const BLOCK_TYPES = [
   },
   {
     type: "photos",
+    group: "content",
     label: "Photo carousel",
     hint: "Large photos shown one at a time, sliding automatically",
     fields: [
@@ -164,6 +185,121 @@ export const BLOCK_TYPES = [
       { key: "items", label: "Photos", kind: "list", itemLabel: "photo", max: 12, hint: "Landscape photos work best. They're shown wide, and cropped to fit.", fields: [{ key: "photo", label: "Photo", kind: "image" }, { key: "caption", label: "Caption (optional)", kind: "text" }] },
     ],
     defaults: { heading: "", seconds: "6", arrows: "show", items: [] },
+  },
+  {
+    type: "services",
+    group: "services",
+    label: "Services grid",
+    hint: "Cards for each service, with an icon, short description and optional link",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Our services" },
+      { key: "subhead", label: "Subheading", kind: "text" },
+      { key: "items", label: "Services", kind: "list", itemLabel: "service", max: 12, fields: [{ key: "icon", label: "Icon (optional)", kind: "icon" }, { key: "title", label: "Title", kind: "text", placeholder: "Early intervention" }, { key: "text", label: "Description", kind: "textarea" }, { key: "link", label: "Link (optional)", kind: "link" }] },
+    ],
+    defaults: {
+      heading: "Our services",
+      subhead: "Support for every stage, built around your child and your family.",
+      items: [
+        { icon: "baby-carriage", title: "Early intervention", text: "Play-based therapy for toddlers and preschoolers that builds communication and everyday skills.", link: "" },
+        { icon: "school", title: "School-age therapy", text: "Targeted support for learning, behavior and friendships at home and at school.", link: "" },
+        { icon: "users", title: "Parent training", text: "Practical coaching so the progress carries into daily routines.", link: "" },
+        { icon: "friends", title: "Social skills groups", text: "Small groups where children practice connecting with peers.", link: "" },
+        { icon: "clipboard-check", title: "Assessment", text: "A thorough, family-centered evaluation to shape the right plan.", link: "" },
+      ],
+    },
+  },
+  {
+    type: "services_list",
+    group: "services",
+    label: "Services with photos",
+    hint: "Alternating photo and text rows for a deeper look at each service",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "How we help" },
+      { key: "items", label: "Services", kind: "list", itemLabel: "service", max: 8, fields: [{ key: "title", label: "Title", kind: "text", placeholder: "Early intervention" }, { key: "text", label: "Description", kind: "textarea" }, { key: "image", label: "Photo", kind: "image" }, { key: "link", label: "Link (optional)", kind: "link" }, { key: "link_label", label: "Link text", kind: "text", placeholder: "Learn more" }] },
+    ],
+    defaults: {
+      heading: "How we help",
+      items: [
+        { title: "Early intervention", text: "Short, playful sessions in a setting your child already knows, so new skills stick.", link: "", link_label: "Learn more" },
+        { title: "School-age therapy", text: "We work alongside teachers and families so progress shows up in the classroom too.", link: "", link_label: "Learn more" },
+      ],
+    },
+  },
+  {
+    type: "settings",
+    group: "services",
+    label: "Where we provide care",
+    hint: "In-home, center-based, school-based and telehealth, each with a short description",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Care where your child is comfortable" },
+      { key: "subhead", label: "Subheading", kind: "text" },
+      { key: "items", label: "Settings", kind: "list", itemLabel: "setting", max: 6, fields: [{ key: "icon", label: "Icon (optional)", kind: "icon" }, { key: "name", label: "Name", kind: "text", placeholder: "In-home" }, { key: "text", label: "Description", kind: "textarea" }] },
+    ],
+    defaults: {
+      heading: "Care where your child is comfortable",
+      subhead: "",
+      items: [
+        { icon: "home", name: "In-home", text: "Therapy in your own space, working on the routines that matter most to your family." },
+        { icon: "building", name: "Center-based", text: "A purpose-built space with peers, play areas and everything our team needs." },
+        { icon: "school", name: "School-based", text: "Support in the classroom, coordinated with teachers and staff." },
+        { icon: "video", name: "Telehealth", text: "Parent coaching and sessions by video, wherever you are." },
+      ],
+    },
+  },
+  {
+    type: "ages",
+    group: "services",
+    label: "Age groups served",
+    hint: "Toddlers, children, teens and adults, with the ages each covers",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Who we serve" },
+      { key: "items", label: "Age groups", kind: "list", itemLabel: "group", max: 6, fields: [{ key: "range", label: "Ages", kind: "text", placeholder: "Ages 1–3" }, { key: "label", label: "Name", kind: "text", placeholder: "Toddlers" }, { key: "text", label: "Short description (optional)", kind: "textarea" }] },
+    ],
+    defaults: {
+      heading: "Who we serve",
+      items: [
+        { range: "Ages 1–3", label: "Toddlers", text: "Early support for communication and play." },
+        { range: "Ages 4–12", label: "Children", text: "Skills for learning, behavior and friendships." },
+        { range: "Ages 13–17", label: "Teens", text: "Independence, social skills and school success." },
+        { range: "18+", label: "Adults", text: "Daily living and community skills." },
+      ],
+    },
+  },
+  {
+    type: "approach",
+    group: "services",
+    label: "Our approach",
+    hint: "Your philosophy, written out, with an optional photo beside it",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Our approach" },
+      { key: "body", label: "Text", kind: "richtext" },
+      { key: "image", label: "Photo (optional)", kind: "image" },
+      { key: "image_side", label: "Photo position", kind: "choice", options: [{ value: "right", label: "Right" }, { value: "left", label: "Left" }] },
+    ],
+    defaults: {
+      heading: "Our approach",
+      body: "<p>Every child learns differently. We start by getting to know your child and your family, then build a plan around what matters most to you.</p><p>Our sessions are play-based and led by what motivates your child, so learning feels like fun.</p>",
+      image_side: "right",
+    },
+  },
+  {
+    type: "values",
+    group: "services",
+    label: "Our values",
+    hint: "Three to six icon tiles, each with a word and a sentence",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "What we stand for" },
+      { key: "items", label: "Values", kind: "list", itemLabel: "value", max: 6, fields: [{ key: "icon", label: "Icon (optional)", kind: "icon" }, { key: "title", label: "Word or phrase", kind: "text", placeholder: "Compassion" }, { key: "text", label: "One sentence", kind: "textarea" }] },
+    ],
+    defaults: {
+      heading: "What we stand for",
+      items: [
+        { icon: "heart", title: "Compassion", text: "Every child and family is met with kindness and patience." },
+        { icon: "users", title: "Partnership", text: "Parents are part of the team, always." },
+        { icon: "bulb", title: "Evidence-based", text: "We use methods backed by research and update them as the science does." },
+        { icon: "shield-check", title: "Integrity", text: "Honest communication and ethical care at every step." },
+      ],
+    },
   },
 ] as const;
 
@@ -228,5 +364,9 @@ export function blockSummary(type: string, c: BlockConfig) {
   if (["testimonials", "outcomes"].includes(type)) return configText(c, "heading");
   if (type === "photos") return configText(c, "heading") || `${configList(c).filter((i) => i.photo_path).length} photos`;
   if (type === "quick_actions") return configItems(c).filter((i) => i.label).map((i) => i.label).join(" · ");
+  if (type === "approach") return configText(c, "heading");
+  if (["services", "services_list", "settings", "ages", "values"].includes(type)) {
+    return configList(c).map((i) => i.title || i.name || i.label).filter(Boolean).join(" · ");
+  }
   return configText(c, "headline");
 }

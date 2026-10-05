@@ -6,6 +6,7 @@ import { ICON_LIBRARY } from "@/components/icon-library";
 import { Icon, LibraryIcon } from "@/components/icons";
 import { MAX_ACTIONS, configItems, configList, configText, type BlockField, type HomeBlock, type LibraryLogo } from "@/lib/blocks";
 import type { PageLink } from "@/lib/site";
+import { RichEditor } from "../rich-editor";
 import { deleteBlock, saveBlock, toggleBlock, type FormState } from "../actions";
 import { button, dangerLink, file, input, label, tile } from "../ui";
 
@@ -137,6 +138,17 @@ function IconPicker({ name, defaultValue, label: ariaLabel }: { name: string; de
   );
 }
 
+function RichField({ name, label: text, initial }: { name: string; label: string; initial: string }) {
+  const [html, setHtml] = useState(initial);
+  return (
+    <div className="space-y-1">
+      <span className={label}>{text}</span>
+      <input type="hidden" name={name} value={html} />
+      <RichEditor initial={initial} onChange={setHtml} />
+    </div>
+  );
+}
+
 const CUSTOM = "__custom";
 
 // Pick one of the site's own pages or sections, or type any other link. Submits a single value under "name".
@@ -162,7 +174,7 @@ function LinkInput({ name, defaultValue, pages, placeholder, label: ariaLabel }:
 type Row = { uid: string; values: Record<string, string> };
 
 // Repeatable rows. Inputs are uncontrolled and keyed by uid, so reordering and deleting keep what's been typed or picked.
-function ListField({ field, initial, urls, library }: { field: Extract<BlockField, { kind: "list" }>; initial: Record<string, string>[]; urls: Record<string, string>; library: LibraryLogo[] }) {
+function ListField({ field, initial, urls, library, pages }: { field: Extract<BlockField, { kind: "list" }>; initial: Record<string, string>[]; urls: Record<string, string>; library: LibraryLogo[]; pages: PageLink[] }) {
   const [rows, setRows] = useState<Row[]>(() => initial.map((values) => ({ uid: crypto.randomUUID(), values })));
   const move = (i: number, by: -1 | 1) =>
     setRows((all) => {
@@ -189,7 +201,9 @@ function ListField({ field, initial, urls, library }: { field: Extract<BlockFiel
             return (
               <div key={sub.key} className="space-y-1">
                 <span className={label}>{sub.label}</span>
-                {sub.kind === "icon" ? (
+                {sub.kind === "link" ? (
+                  <LinkInput name={name} defaultValue={row.values[sub.key] ?? ""} pages={pages} label={sub.label} />
+                ) : sub.kind === "icon" ? (
                   <IconPicker name={name} defaultValue={row.values[sub.key] ?? ""} label={sub.label} />
                 ) : sub.kind === "image" ? (
                   <ImageInput name={name} path={row.values[`${sub.key}_path`] ?? ""} urls={urls} library={sub.library ? library.filter((l) => l.category === sub.library) : undefined} libId={row.values[`${sub.key}_lib`]} />
@@ -246,6 +260,7 @@ export function BlockForm({ block, fields, urls, pages, library }: { block: Home
               </div>
             );
           }
+          if (f.kind === "richtext") return <RichField key={f.key} name={f.key} label={f.label} initial={configText(c, f.key)} />;
           if (f.kind === "textarea") {
             return (
               <label key={f.key} className="block space-y-1">
@@ -277,7 +292,7 @@ export function BlockForm({ block, fields, urls, pages, library }: { block: Home
               </div>
             );
           }
-          if (f.kind === "list") return <ListField key={f.key} field={f} initial={configList(c, f.key)} urls={urls} library={library} />;
+          if (f.kind === "list") return <ListField key={f.key} field={f} initial={configList(c, f.key)} urls={urls} library={library} pages={pages} />;
           // actions
           const items = configItems(c);
           return (

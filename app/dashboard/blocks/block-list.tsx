@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Icon, LibraryIcon } from "@/components/icons";
-import { BLOCK_TYPES, blockSummary, blockType, configText, type HomeBlock } from "@/lib/blocks";
+import { BLOCK_GROUPS, BLOCK_TYPES, blockSummary, blockType, configText, type HomeBlock } from "@/lib/blocks";
 import { addBlock, deleteBlock, moveBlock, toggleBlock } from "../actions";
 
 const iconButton = "flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:pointer-events-none disabled:opacity-30";
@@ -56,21 +56,26 @@ export function BlockList({ blocks }: { blocks: HomeBlock[] }) {
         <p className="rounded-xl border border-dashed border-gray-200 px-4 py-6 text-center text-sm text-gray-500">No blocks yet. Add one below.</p>
       )}
 
-      <div className="space-y-2 border-t border-gray-100 pt-5">
+      <div className="space-y-6 border-t border-gray-100 pt-5">
         <p className="text-sm font-medium text-gray-700">Add a block</p>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {BLOCK_TYPES.map((t) => (
-            <form key={t.type} action={addBlock.bind(null, t.type)}>
-              <button className="flex h-full w-full items-start gap-3 rounded-xl border border-gray-200 px-4 py-3 text-left transition hover:bg-gray-50">
-                <Icon name="plus" className="mt-1 h-4 w-4 shrink-0 text-gray-400" />
-                <span>
-                  <span className="block font-medium">{t.label}</span>
-                  <span className="block text-sm text-gray-500">{t.hint}</span>
-                </span>
-              </button>
-            </form>
-          ))}
-        </div>
+        {BLOCK_GROUPS.map((g) => (
+          <div key={g.key} className="space-y-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">{g.label}</h3>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {BLOCK_TYPES.filter((t) => t.group === g.key).map((t) => (
+                <form key={t.type} action={addBlock.bind(null, t.type)}>
+                  <button className="flex h-full w-full items-start gap-3 rounded-xl border border-gray-200 px-4 py-3 text-left transition hover:bg-gray-50">
+                    <Icon name="plus" className="mt-1 h-4 w-4 shrink-0 text-gray-400" />
+                    <span>
+                      <span className="block font-medium">{t.label}</span>
+                      <span className="block text-sm text-gray-500">{t.hint}</span>
+                    </span>
+                  </button>
+                </form>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );

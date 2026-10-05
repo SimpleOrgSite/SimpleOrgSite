@@ -413,6 +413,8 @@ export async function saveBlock(id: string, _: FormState, formData: FormData): P
   for (const f of def.fields as readonly BlockField[]) {
     if (f.kind === "text" || f.kind === "textarea") {
       config[f.key] = String(formData.get(f.key) ?? "").trim();
+    } else if (f.kind === "richtext") {
+      config[f.key] = sanitizeRichText(String(formData.get(f.key) ?? ""));
     } else if (f.kind === "link") {
       const link = normalizeBlockLink(String(formData.get(f.key) ?? ""));
       if (link === null) return fail(`${f.label}: use a web address, a page like /about, or a phone or email link.`);
@@ -453,6 +455,10 @@ export async function saveBlock(id: string, _: FormState, formData: FormData): P
             if (sub.library) row[`${sub.key}_lib`] = hit?.id ?? "";
             if (hit) libraryName = hit.name;
             filled ||= !!res.path || !!hit;
+          } else if (sub.kind === "link") {
+            const link = normalizeBlockLink(String(formData.get(name) ?? ""));
+            if (link === null) return fail(`${sub.label}: use a web address, a page like /about, or a phone or email link.`);
+            row[sub.key] = link;
           } else if (sub.kind === "icon") {
             // An icon alone doesn't make a row worth keeping.
             row[sub.key] = iconName(formData.get(name));
