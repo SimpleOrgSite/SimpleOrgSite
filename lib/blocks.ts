@@ -1,3 +1,4 @@
+import { PHOTO_SHAPES } from "@/lib/directors";
 import { ICON_LIBRARY } from "@/components/icon-library";
 
 // Safe to import from client components (no server code).
@@ -39,6 +40,8 @@ export const BLOCK_GROUPS = [
   { key: "trust", label: "Trust & credibility" },
   { key: "services", label: "What we do" },
   { key: "start", label: "Getting started" },
+  { key: "people", label: "People" },
+  { key: "locations", label: "Locations & contact" },
   { key: "content", label: "Content & community" },
 ] as const;
 export type BlockGroup = (typeof BLOCK_GROUPS)[number]["key"];
@@ -252,6 +255,75 @@ export const BLOCK_TYPES = [
     defaults: { status: "accepting", message: "", link_label: "", link: "" },
   },
   {
+    type: "team",
+    group: "people",
+    label: "Team grid",
+    hint: "Photo, name, credentials and a short bio for each person",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Meet our team" },
+      { key: "subhead", label: "Subheading", kind: "text" },
+      { key: "shape", label: "Photo shape", kind: "choice", options: PHOTO_SHAPES.map((s) => ({ value: s.key, label: s.label })) },
+      { key: "items", label: "People", kind: "list", itemLabel: "person", max: 24, fields: [{ key: "photo", label: "Photo", kind: "image" }, { key: "name", label: "Name", kind: "text", placeholder: "Jordan Lee" }, { key: "role", label: "Title / credentials", kind: "text", placeholder: "BCBA, Clinical Director" }, { key: "bio", label: "Short bio (optional)", kind: "textarea" }] },
+    ],
+    defaults: { heading: "Meet our team", subhead: "", shape: "circle", items: [{ name: "Jordan Lee", role: "BCBA, Clinical Director", bio: "Jordan has spent over a decade helping children and families find their voice." }, { name: "Sam Rivera", role: "BCBA", bio: "Sam loves turning learning goals into games." }, { name: "Alex Chen", role: "Registered Behavior Technician", bio: "" }] },
+  },
+  {
+    type: "letter",
+    group: "people",
+    label: "Welcome letter",
+    hint: "A personal note from the founder or director, with photo and signature",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "A note from our founder" },
+      { key: "body", label: "Letter", kind: "richtext" },
+      { key: "name", label: "Name", kind: "text", placeholder: "Jordan Lee" },
+      { key: "title", label: "Title", kind: "text", placeholder: "Founder & Clinical Director" },
+      { key: "signature", label: "Handwritten signature", kind: "choice", options: [{ value: "show", label: "Show" }, { value: "hide", label: "Hide" }] },
+      { key: "photo", label: "Photo (optional)", kind: "image" },
+    ],
+    defaults: { heading: "A note from our founder", body: "<p>Welcome, and thank you for considering us.</p><p>I started this practice because every child deserves to be understood, and every family deserves support they can count on. Our team treats your child the way we would want our own children treated: with patience, joy and respect.</p><p>I hope we get the chance to meet you.</p>", name: "Jordan Lee", title: "Founder & Clinical Director", signature: "show" },
+  },
+  {
+    type: "careers",
+    group: "people",
+    label: "Careers callout",
+    hint: "A “join our team” banner with an apply button",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Join our team" },
+      { key: "text", label: "Text", kind: "textarea" },
+      { key: "link_label", label: "Button text", kind: "text", placeholder: "See open positions" },
+      { key: "link", label: "Button link", kind: "link" },
+      { key: "style", label: "Style", kind: "choice", options: [{ value: "dark", label: "Dark (theme color background)" }, { value: "light", label: "Light (tinted background)" }] },
+    ],
+    defaults: { heading: "Join our team", text: "We're always looking for kind, curious people who want to make a real difference for children and families.", link_label: "See open positions", link: "", style: "dark" },
+  },
+  {
+    type: "positions",
+    group: "people",
+    label: "Open positions",
+    hint: "A list of jobs with location, type and an apply link",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Open positions" },
+      { key: "intro", label: "Intro (optional)", kind: "text" },
+      { key: "items", label: "Positions", kind: "list", itemLabel: "position", max: 20, fields: [{ key: "title", label: "Job title", kind: "text", placeholder: "Registered Behavior Technician" }, { key: "location", label: "Location", kind: "text", placeholder: "Austin, TX" }, { key: "kind", label: "Type", kind: "text", placeholder: "Full-time" }, { key: "link", label: "Apply link", kind: "link" }] },
+      { key: "empty_text", label: "Message when there are no positions", kind: "text", placeholder: "No openings right now. Email us to be considered for the future." },
+    ],
+    defaults: { heading: "Open positions", intro: "", items: [{ title: "Registered Behavior Technician (RBT)", location: "Austin, TX", kind: "Full-time", link: "" }, { title: "Board Certified Behavior Analyst (BCBA)", location: "Austin, TX", kind: "Full-time", link: "" }], empty_text: "No openings right now. Check back soon." },
+  },
+  {
+    type: "locations",
+    group: "locations",
+    label: "Locations & service areas",
+    hint: "Addresses, hours, phone and a map, plus the cities or counties you serve",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Find us" },
+      { key: "map", label: "Map", kind: "choice", options: [{ value: "show", label: "Show a map for each location" }, { value: "hide", label: "No map" }] },
+      { key: "items", label: "Locations", kind: "list", itemLabel: "location", max: 6, fields: [{ key: "name", label: "Name", kind: "text", placeholder: "Main office" }, { key: "address", label: "Address", kind: "textarea" }, { key: "phone", label: "Phone", kind: "text", placeholder: "(555) 123-4567" }, { key: "hours", label: "Hours", kind: "textarea", placeholder: "Mon–Fri 8am–6pm" }] },
+      { key: "areas_heading", label: "Service areas heading", kind: "text", placeholder: "Areas we serve" },
+      { key: "areas", label: "Cities or counties served", kind: "textarea", hint: "One per line, or separated by commas." },
+    ],
+    defaults: { heading: "Find us", map: "show", items: [{ name: "Main office", address: "123 Main Street\nAustin, TX 78701", phone: "", hours: "Monday–Friday, 8am–6pm" }], areas_heading: "Areas we serve", areas: "Travis County\nWilliamson County\nHays County" },
+  },
+  {
     type: "photos",
     group: "content",
     label: "Photo carousel",
@@ -449,10 +521,12 @@ export function blockSummary(type: string, c: BlockConfig) {
   if (["testimonials", "outcomes"].includes(type)) return configText(c, "heading");
   if (type === "photos") return configText(c, "heading") || `${configList(c).filter((i) => i.photo_path).length} photos`;
   if (type === "quick_actions") return configItems(c).filter((i) => i.label).map((i) => i.label).join(" · ");
+  if (type === "letter") return configText(c, "name") || configText(c, "heading");
+  if (type === "careers") return configText(c, "heading");
   if (type === "approach" || type === "first_day") return configText(c, "heading");
   if (type === "faq") return configList(c).map((i) => i.question).filter(Boolean).join(" · ");
   if (type === "availability") return configText(c, "message") || AVAILABILITY[configText(c, "status") as keyof typeof AVAILABILITY]?.text || "";
-  if (["services", "services_list", "settings", "ages", "values", "steps"].includes(type)) {
+  if (["services", "services_list", "settings", "ages", "values", "steps", "team", "positions", "locations"].includes(type)) {
     return configList(c).map((i) => i.title || i.name || i.label).filter(Boolean).join(" · ");
   }
   return configText(c, "headline");

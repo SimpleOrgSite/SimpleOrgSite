@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Icon, LibraryIcon } from "@/components/icons";
 import { CountUp } from "./count-up";
 import { PhotoCarousel } from "./photo-carousel";
+import { SHAPE_CLASSES, type PhotoShape } from "@/lib/directors";
 import { sanitizeRichText } from "@/lib/richtext";
 import { AVAILABILITY, configItems, configList, configText, libraryKey, type HomeBlock } from "@/lib/blocks";
 
@@ -604,6 +605,192 @@ function Availability({ block }: { block: HomeBlock }) {
   );
 }
 
+function Team({ block, urls }: { block: HomeBlock; urls: Urls }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.name || i.photo_path);
+  if (items.length === 0) return null;
+  const shape = (configText(c, "shape") in SHAPE_CLASSES ? configText(c, "shape") : "circle") as PhotoShape;
+  return (
+    <section>
+      <div className="mx-auto max-w-6xl space-y-10 px-6 py-14">
+        <SectionHead c={c} />
+        <ul className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-3 lg:grid-cols-4">
+          {items.map((i, n) => {
+            const photo = urlOf(urls, i.photo_path);
+            return (
+              <li key={n} className="space-y-3 text-center">
+                {/* Without a photo, an empty tinted shape keeps the grid even. */}
+                {photo ? (
+                  // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
+                  <img src={photo} alt={i.name || ""} loading="lazy" className={`mx-auto w-full max-w-48 object-cover shadow-sm ${SHAPE_CLASSES[shape]}`} />
+                ) : (
+                  <div className={`mx-auto w-full max-w-48 ${SHAPE_CLASSES[shape]}`} style={{ backgroundColor: `color-mix(in srgb, ${THEME} 12%, white)` }} />
+                )}
+                <div className="space-y-1">
+                  {i.name && <h3 className="text-lg font-semibold text-gray-900">{i.name}</h3>}
+                  {i.role && <p className="text-sm font-medium" style={{ color: THEME }}>{i.role}</p>}
+                  {i.bio && <p className="pt-1 text-sm leading-relaxed text-gray-600">{i.bio}</p>}
+                </div>
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function Letter({ block, urls }: { block: HomeBlock; urls: Urls }) {
+  const c = block.config;
+  const photo = urlOf(urls, configText(c, "photo_path"));
+  const name = configText(c, "name");
+  return (
+    <section className="bg-gray-50">
+      <div className={`mx-auto grid items-start gap-10 px-6 py-16 ${photo ? "max-w-5xl md:grid-cols-[16rem_1fr]" : "max-w-3xl"}`}>
+        {photo && (
+          // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
+          <img src={photo} alt={name} loading="lazy" className="mx-auto aspect-[4/5] w-full max-w-64 rounded-3xl object-cover shadow-lg" />
+        )}
+        <div className="space-y-5">
+          {configText(c, "heading") && <h2 className="text-3xl font-semibold" style={{ color: THEME }}>{configText(c, "heading")}</h2>}
+          <div className="rich text-lg leading-relaxed text-gray-700" dangerouslySetInnerHTML={{ __html: sanitizeRichText(configText(c, "body")) }} />
+          {(name || configText(c, "title")) && (
+            <div className="pt-2">
+              {name && configText(c, "signature") !== "hide" && (
+                <p className="text-4xl leading-tight" style={{ fontFamily: '"Snell Roundhand", "Segoe Script", "Brush Script MT", "Lucida Handwriting", cursive', color: THEME }}>{name}</p>
+              )}
+              {name && <p className="mt-1 font-semibold text-gray-900">{name}</p>}
+              {configText(c, "title") && <p className="text-gray-600">{configText(c, "title")}</p>}
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Careers({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const dark = configText(c, "style") !== "light";
+  const link = configText(c, "link");
+  return (
+    <section
+      style={dark ? { backgroundColor: THEME, color: "#fff" } : { backgroundColor: `color-mix(in srgb, ${THEME} 10%, white)`, color: THEME }}
+    >
+      <div className="mx-auto max-w-4xl space-y-5 px-6 py-16 text-center">
+        {configText(c, "heading") && <h2 className="text-3xl font-bold sm:text-4xl">{configText(c, "heading")}</h2>}
+        {configText(c, "text") && <p className="mx-auto max-w-2xl text-lg leading-relaxed opacity-90">{configText(c, "text")}</p>}
+        {link && configText(c, "link_label") && (
+          <div className="pt-2">
+            <SmartLink href={link} className={buttonBase} style={dark ? { backgroundColor: "#fff", color: THEME } : { backgroundColor: THEME, color: "#fff" }}>{configText(c, "link_label")}</SmartLink>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Positions({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.title);
+  if (items.length === 0 && !configText(c, "empty_text") && !configText(c, "heading")) return null;
+  return (
+    <section>
+      <div className="mx-auto max-w-4xl space-y-8 px-6 py-14">
+        <div className="space-y-2 text-center">
+          {heading(configText(c, "heading"))}
+          {configText(c, "intro") && <p className="text-lg text-gray-600">{configText(c, "intro")}</p>}
+        </div>
+        {items.length > 0 ? (
+          <ul className="space-y-3">
+            {items.map((i, n) => (
+              <li key={n} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-900/5">
+                <div className="space-y-1.5">
+                  <h3 className="text-lg font-semibold text-gray-900">{i.title}</h3>
+                  {(i.location || i.kind) && (
+                    <p className="flex flex-wrap gap-2 text-sm">
+                      {i.location && <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2.5 py-0.5 text-gray-600"><Icon name="map-pin" className="h-3.5 w-3.5" />{i.location}</span>}
+                      {i.kind && <span className="rounded-full px-2.5 py-0.5 font-medium" style={{ backgroundColor: `color-mix(in srgb, ${THEME} 12%, white)`, color: THEME }}>{i.kind}</span>}
+                    </p>
+                  )}
+                </div>
+                {i.link && (
+                  <SmartLink href={i.link} className="inline-flex items-center gap-1.5 rounded-xl px-5 py-2.5 font-medium text-white shadow-sm transition hover:opacity-85" style={{ backgroundColor: THEME }}>
+                    Apply <Icon name="arrow-right" className="h-4 w-4" />
+                  </SmartLink>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="rounded-2xl bg-gray-50 px-6 py-8 text-center text-gray-600">{configText(c, "empty_text")}</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Locations({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.name || i.address);
+  const areas = configText(c, "areas").split(/[\n,]+/).map((a) => a.trim()).filter(Boolean);
+  if (items.length === 0 && areas.length === 0) return null;
+  const showMap = configText(c, "map") !== "hide";
+  const single = items.length === 1;
+  return (
+    <section className="bg-gray-50">
+      <div className="mx-auto max-w-6xl space-y-10 px-6 py-14">
+        <SectionHead c={c} />
+        <ul className={`grid gap-6 ${single ? "" : "md:grid-cols-2"}`}>
+          {items.map((i, n) => (
+            <li key={n} className={`grid gap-6 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5 ${single && showMap && i.address ? "md:grid-cols-2" : ""}`}>
+              <div className="space-y-4">
+                {i.name && <h3 className="text-xl font-semibold text-gray-900">{i.name}</h3>}
+                {i.address && (
+                  <p className="flex gap-3 text-gray-700">
+                    <span style={{ color: THEME }}><Icon name="map-pin" className="mt-1 h-5 w-5" /></span>
+                    <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(i.address.replace(/\n/g, ", "))}`} target="_blank" rel="noopener noreferrer" className="whitespace-pre-line underline-offset-4 hover:underline">{i.address}</a>
+                  </p>
+                )}
+                {i.phone && (
+                  <p className="flex gap-3 text-gray-700">
+                    <span style={{ color: THEME }}><Icon name="phone" className="mt-1 h-5 w-5" /></span>
+                    <a href={`tel:${i.phone.replace(/[^+0-9]/g, "")}`} className="underline-offset-4 hover:underline">{i.phone}</a>
+                  </p>
+                )}
+                {i.hours && (
+                  <p className="flex gap-3 text-gray-700">
+                    <span style={{ color: THEME }}><LibraryIcon name="clock" className="mt-1 h-5 w-5" /></span>
+                    <span className="whitespace-pre-line">{i.hours}</span>
+                  </p>
+                )}
+              </div>
+              {showMap && i.address && (
+                // Google's no-key embed URL: the address is the search query. Lazy-loaded so it costs nothing until scrolled to.
+                <iframe
+                  title={`Map of ${i.name || i.address}`}
+                  src={`https://www.google.com/maps?q=${encodeURIComponent(i.address.replace(/\n/g, ", "))}&output=embed`}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  className="aspect-[4/3] w-full rounded-2xl border-0 bg-gray-100"
+                />
+              )}
+            </li>
+          ))}
+        </ul>
+        {areas.length > 0 && (
+          <div className="space-y-4 text-center">
+            {configText(c, "areas_heading") && <h3 className="text-xl font-semibold text-gray-900">{configText(c, "areas_heading")}</h3>}
+            <ul className="flex flex-wrap justify-center gap-2">
+              {areas.map((a) => <li key={a} className="rounded-full bg-white px-4 py-1.5 font-medium text-gray-700 shadow-sm ring-1 ring-gray-900/5">{a}</li>)}
+            </ul>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
 export function BlockView({ block, urls }: { block: HomeBlock; urls: Urls }) {
   switch (block.type) {
     case "hero": return <Hero block={block} urls={urls} />;
@@ -620,6 +807,11 @@ export function BlockView({ block, urls }: { block: HomeBlock; urls: Urls }) {
     case "faq": return <Faq block={block} />;
     case "first_day": return <FirstDay block={block} />;
     case "availability": return <Availability block={block} />;
+    case "team": return <Team block={block} urls={urls} />;
+    case "letter": return <Letter block={block} urls={urls} />;
+    case "careers": return <Careers block={block} />;
+    case "positions": return <Positions block={block} />;
+    case "locations": return <Locations block={block} />;
     case "photos": return <Photos block={block} urls={urls} />;
     case "credentials": return <Credentials block={block} urls={urls} />;
     case "stats": return <Stats block={block} />;
