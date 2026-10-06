@@ -24,6 +24,7 @@ type Field =
   | { key: string; label: string; kind: "image"; hint?: string }
   | { key: string; label: string; kind: "richtext" }
   | { key: string; label: string; kind: "embed"; hint?: string }
+  | { key: string; label: string; kind: "video"; hint?: string }
   | { key: string; label: string; kind: "choice"; options: readonly { value: string; label: string }[] }
   | { key: string; label: string; kind: "actions" };
 export type BlockField = Field;
@@ -44,6 +45,8 @@ export const BLOCK_GROUPS = [
   { key: "people", label: "People" },
   { key: "locations", label: "Locations & contact" },
   { key: "content", label: "Content & community" },
+  { key: "utility", label: "Free-form" },
+  { key: "notices", label: "Notices & safety" },
 ] as const;
 export type BlockGroup = (typeof BLOCK_GROUPS)[number]["key"];
 
@@ -365,6 +368,143 @@ export const BLOCK_TYPES = [
     defaults: { heading: "Ready to get started?", text: "Reach out today. We'll answer your questions and walk you through the next steps.", primary_label: "Request an intake", primary_link: "", secondary_label: "", secondary_link: "", style: "dark" },
   },
   {
+    type: "news_feed",
+    group: "content",
+    label: "Latest news",
+    hint: "Your most recent stories from the News page, with a link to see them all",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Latest news" },
+      { key: "count", label: "How many stories", kind: "choice", options: [{ value: "3", label: "3" }, { value: "6", label: "6" }, { value: "9", label: "9" }] },
+    ],
+    defaults: { heading: "Latest news", count: "3" },
+  },
+  {
+    type: "resources",
+    group: "content",
+    label: "Resources",
+    hint: "A list of helpful links and guides for parents (link to PDFs or pages)",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Resources for parents" },
+      { key: "subhead", label: "Subheading", kind: "text" },
+      { key: "items", label: "Resources", kind: "list", itemLabel: "resource", max: 20, fields: [{ key: "title", label: "Title", kind: "text", placeholder: "Visual schedule starter kit" }, { key: "tag", label: "Label (optional)", kind: "text", placeholder: "PDF" }, { key: "text", label: "Description", kind: "textarea" }, { key: "link", label: "Link", kind: "link" }] },
+    ],
+    defaults: { heading: "Resources for parents", subhead: "", items: [{ title: "Visual schedule starter kit", tag: "PDF", text: "Printable cards to help your child follow daily routines.", link: "" }, { title: "ABA glossary for families", tag: "Guide", text: "Plain-language explanations of the words you'll hear.", link: "" }] },
+  },
+  {
+    type: "workshops",
+    group: "content",
+    label: "Workshops & parent training",
+    hint: "Upcoming sessions as a simple list with dates written out",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Upcoming workshops" },
+      { key: "intro", label: "Intro (optional)", kind: "text" },
+      { key: "items", label: "Sessions", kind: "list", itemLabel: "session", max: 12, fields: [{ key: "title", label: "Title", kind: "text", placeholder: "Introduction to toilet training" }, { key: "when", label: "Date and time", kind: "text", placeholder: "Saturday, Nov 8 · 10am" }, { key: "where", label: "Where", kind: "text", placeholder: "Main office, or online" }, { key: "text", label: "Description", kind: "textarea" }, { key: "link", label: "Sign-up link (optional)", kind: "link" }] },
+      { key: "empty_text", label: "Message when there are none", kind: "text", placeholder: "No workshops scheduled right now. Check back soon." },
+    ],
+    defaults: { heading: "Upcoming workshops", intro: "", items: [{ title: "Parent training: building daily routines", when: "Saturday, 10am", where: "Main office", text: "Practical strategies you can use at home right away.", link: "" }], empty_text: "No workshops scheduled right now. Check back soon." },
+  },
+  {
+    type: "video",
+    group: "content",
+    label: "Video",
+    hint: "A YouTube or Vimeo video, such as a welcome message or tour",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Take a tour" },
+      { key: "intro", label: "Intro (optional)", kind: "text" },
+      { key: "video", label: "Video link", kind: "video", hint: "Paste a YouTube or Vimeo link." },
+    ],
+    defaults: { heading: "Take a tour", intro: "", video: "" },
+  },
+  {
+    type: "gallery",
+    group: "content",
+    label: "Photo gallery",
+    hint: "A grid of photos that open larger when clicked",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Inside our center" },
+      { key: "columns", label: "Photos per row", kind: "choice", options: [{ value: "3", label: "3" }, { value: "4", label: "4" }] },
+      { key: "items", label: "Photos", kind: "list", itemLabel: "photo", max: 24, fields: [{ key: "photo", label: "Photo", kind: "image" }, { key: "caption", label: "Caption (optional)", kind: "text" }] },
+    ],
+    defaults: { heading: "", columns: "3", items: [] },
+  },
+  {
+    type: "partners",
+    group: "trust",
+    label: "Community partners",
+    hint: "Logos of schools, pediatricians and nonprofits you work with, as a grid or scrolling row",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Our community partners" },
+      { key: "subhead", label: "Subheading", kind: "text" },
+      { key: "layout", label: "Layout", kind: "choice", options: [{ value: "grid", label: "Grid of logos" }, { value: "scroll", label: "Scrolling row (never ends)" }] },
+      { key: "items", label: "Partners", kind: "list", itemLabel: "partner", max: 20, hint: "Add a logo, or just a name to show as text.", fields: [{ key: "name", label: "Name", kind: "text" }, { key: "logo", label: "Logo", kind: "image", library: "partners" }] },
+    ],
+    defaults: { heading: "Our community partners", subhead: "", layout: "grid", items: [{ name: "Local school district" }, { name: "Children's hospital" }, { name: "Autism society chapter" }] },
+  },
+  {
+    type: "glossary",
+    group: "content",
+    label: "Glossary",
+    hint: "ABA terms explained in plain language",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "ABA terms, in plain language" },
+      { key: "intro", label: "Intro (optional)", kind: "text" },
+      { key: "sort", label: "Order", kind: "choice", options: [{ value: "alpha", label: "A to Z" }, { value: "mine", label: "My order" }] },
+      { key: "items", label: "Terms", kind: "list", itemLabel: "term", max: 40, fields: [{ key: "term", label: "Term", kind: "text", placeholder: "Reinforcement" }, { key: "definition", label: "Plain-language meaning", kind: "textarea" }] },
+    ],
+    defaults: { heading: "ABA terms, in plain language", intro: "", sort: "alpha", items: [{ term: "BCBA", definition: "Board Certified Behavior Analyst: the clinician who designs and oversees your child's plan." }, { term: "RBT", definition: "Registered Behavior Technician: the trained team member who works directly with your child." }, { term: "Reinforcement", definition: "Something that follows a behavior and makes it more likely to happen again, like praise or a favorite toy." }] },
+  },
+  {
+    type: "rich_text",
+    group: "utility",
+    label: "Free text",
+    hint: "A heading and formatted text, for anything that doesn't fit another block",
+    fields: [
+      { key: "heading", label: "Heading (optional)", kind: "text" },
+      { key: "body", label: "Text", kind: "richtext" },
+      { key: "align", label: "Alignment", kind: "choice", options: [{ value: "left", label: "Left" }, { value: "center", label: "Centered" }] },
+      { key: "background", label: "Background", kind: "choice", options: [{ value: "white", label: "White" }, { value: "tint", label: "Soft gray" }] },
+    ],
+    defaults: { heading: "", body: "<p>Write anything here.</p>", align: "left", background: "white" },
+  },
+  {
+    type: "image_text",
+    group: "utility",
+    label: "Image and text",
+    hint: "A photo beside a heading, text and an optional button",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text" },
+      { key: "body", label: "Text", kind: "richtext" },
+      { key: "image", label: "Photo", kind: "image" },
+      { key: "image_side", label: "Photo position", kind: "choice", options: [{ value: "right", label: "Right" }, { value: "left", label: "Left" }] },
+      { key: "primary_label", label: "Button text (optional)", kind: "text" },
+      { key: "primary_link", label: "Button link", kind: "link" },
+    ],
+    defaults: { heading: "Tell your story", body: "<p>Share something about your practice here.</p>", image_side: "right", primary_label: "", primary_link: "" },
+  },
+  {
+    type: "compliance",
+    group: "notices",
+    label: "Compliance notices",
+    hint: "Privacy, non-discrimination and billing notices, in small print",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Notices" },
+      { key: "items", label: "Notices", kind: "list", itemLabel: "notice", max: 8, hint: "Use the wording your practice is required to display. Have your attorney or compliance lead review it.", fields: [{ key: "title", label: "Title", kind: "text", placeholder: "Notice of privacy practices" }, { key: "text", label: "Text", kind: "textarea" }, { key: "link", label: "Link to the full notice (optional)", kind: "link" }] },
+    ],
+    defaults: { heading: "Notices", items: [{ title: "Notice of privacy practices", text: "Replace this with your practice's privacy notice or a short summary.", link: "" }, { title: "Non-discrimination", text: "Replace this with your practice's non-discrimination statement.", link: "" }, { title: "Billing and your rights", text: "Replace this with your billing and good-faith estimate information.", link: "" }] },
+  },
+  {
+    type: "crisis",
+    group: "notices",
+    label: "Crisis & emergency resources",
+    hint: "988, 911 and other emergency contacts, with call links",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "If you need help right now" },
+      { key: "intro", label: "Intro (optional)", kind: "text" },
+      { key: "items", label: "Resources", kind: "list", itemLabel: "resource", max: 6, fields: [{ key: "name", label: "Name", kind: "text", placeholder: "988 Suicide & Crisis Lifeline" }, { key: "phone", label: "Phone number (makes a call link)", kind: "text", placeholder: "988" }, { key: "text", label: "Details", kind: "textarea" }, { key: "link", label: "Website (optional)", kind: "link" }] },
+    ],
+    defaults: { heading: "If you need help right now", intro: "We're not an emergency service. If someone is in danger, please use one of these.", items: [{ name: "Emergency", phone: "911", text: "If someone is in immediate danger.", link: "" }, { name: "988 Suicide & Crisis Lifeline", phone: "988", text: "Call or text, any time, free and confidential.", link: "https://988lifeline.org" }, { name: "Crisis Text Line", phone: "", text: "Text HOME to 741741 to reach a trained crisis counselor.", link: "https://www.crisistextline.org" }, { name: "Poison Control", phone: "1-800-222-1222", text: "Free, expert help 24 hours a day.", link: "" }] },
+  },
+  {
     type: "photos",
     group: "content",
     label: "Photo carousel",
@@ -568,12 +708,31 @@ export function normalizeEmbed(raw: string): string | null {
   }
 }
 
+// Canonical privacy-friendly embed URL for a YouTube or Vimeo link, "" for none, null if it isn't one of those.
+export function videoEmbedUrl(raw: string): string | null {
+  const v = raw.trim();
+  if (!v) return "";
+  try {
+    const url = new URL(/^https?:\/\//i.test(v) ? v : `https://${v}`);
+    const host = url.hostname.replace(/^(www\.|m\.)/, "");
+    let id: string | undefined;
+    if (host === "youtu.be") id = url.pathname.slice(1);
+    else if (host === "youtube.com" || host === "youtube-nocookie.com") id = url.searchParams.get("v") ?? /^\/(?:embed|shorts|live)\/([^/?]+)/.exec(url.pathname)?.[1];
+    if (id !== undefined) return /^[\w-]{6,20}$/.test(id) ? `https://www.youtube-nocookie.com/embed/${id}` : null;
+    if (host === "vimeo.com" || host === "player.vimeo.com") {
+      const vid = /(\d{5,})/.exec(url.pathname)?.[1];
+      return vid ? `https://player.vimeo.com/video/${vid}?dnt=1` : null;
+    }
+  } catch {}
+  return null;
+}
+
 // A short line for the dashboard list.
 export function blockSummary(type: string, c: BlockConfig) {
   if (type === "announcement") return configText(c, "text");
   if (type === "testimonial") return configText(c, "quote");
   if (type === "stats") return configList(c).map((i) => `${i.value ?? ""} ${i.label ?? ""}`.trim()).join(" · ");
-  if (["insurance", "credentials"].includes(type)) return configList(c).map((i) => i.name).filter(Boolean).join(" · ");
+  if (["insurance", "credentials", "partners"].includes(type)) return configList(c).map((i) => i.name).filter(Boolean).join(" · ");
   if (["testimonials", "outcomes"].includes(type)) return configText(c, "heading");
   if (type === "photos") return configText(c, "heading") || `${configList(c).filter((i) => i.photo_path).length} photos`;
   if (type === "quick_actions") return configItems(c).filter((i) => i.label).map((i) => i.label).join(" · ");
@@ -587,8 +746,8 @@ export function blockSummary(type: string, c: BlockConfig) {
   if (type === "approach" || type === "first_day") return configText(c, "heading");
   if (type === "faq") return configList(c).map((i) => i.question).filter(Boolean).join(" · ");
   if (type === "availability") return configText(c, "message") || AVAILABILITY[configText(c, "status") as keyof typeof AVAILABILITY]?.text || "";
-  if (["services", "services_list", "settings", "ages", "values", "steps", "team", "positions", "locations"].includes(type)) {
-    return configList(c).map((i) => i.title || i.name || i.label).filter(Boolean).join(" · ");
+  if (["services", "services_list", "settings", "ages", "values", "steps", "team", "positions", "locations", "resources", "workshops", "glossary", "compliance", "crisis"].includes(type)) {
+    return configList(c).map((i) => i.title || i.name || i.label || i.term).filter(Boolean).join(" · ");
   }
-  return configText(c, "headline");
+  return configText(c, "headline") || configText(c, "heading");
 }

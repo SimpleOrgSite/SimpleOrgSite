@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { Icon, LibraryIcon } from "@/components/icons";
 import { CountUp } from "./count-up";
+import { Gallery } from "./gallery";
 import { PhotoCarousel } from "./photo-carousel";
+import { formatNewsDate, sortByDateDesc, storyText, type NewsItem } from "@/lib/news";
 import { SHAPE_CLASSES, type PhotoShape } from "@/lib/directors";
 import { sanitizeRichText } from "@/lib/richtext";
 import { AVAILABILITY, configItems, configList, configText, libraryKey, type HomeBlock } from "@/lib/blocks";
@@ -473,6 +475,7 @@ function Approach({ block, urls }: { block: HomeBlock; urls: Urls }) {
         <div className={`space-y-4 ${imageLeft ? "md:order-2" : ""}`}>
           {configText(c, "heading") && <h2 className="text-3xl font-semibold" style={{ color: THEME }}>{configText(c, "heading")}</h2>}
           <div className="rich text-lg leading-relaxed text-gray-700" dangerouslySetInnerHTML={{ __html: body }} />
+          <Buttons c={c} />
         </div>
         {image && (
           // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
@@ -877,16 +880,254 @@ function Cta({ block }: { block: HomeBlock }) {
   );
 }
 
-export function BlockView({ block, urls }: { block: HomeBlock; urls: Urls }) {
+function NewsFeed({ block, news, newsLabel }: { block: HomeBlock; news: NewsItem[]; newsLabel: string | null }) {
+  const c = block.config;
+  const items = sortByDateDesc(news).slice(0, Number(configText(c, "count")) || 3);
+  if (items.length === 0) return null;
+  return (
+    <section>
+      <div className="mx-auto max-w-6xl space-y-10 px-6 py-14">
+        <SectionHead c={c} />
+        <ul className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {items.map((i) => (
+            <li key={i.id} className="flex flex-col gap-3 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5">
+              {i.published_on && <p className="text-sm text-gray-500">{formatNewsDate(i.published_on)}</p>}
+              <h3 className="text-xl font-semibold text-gray-900">{i.name}</h3>
+              <p className="line-clamp-3 leading-relaxed text-gray-600">{storyText(i.story)}</p>
+              {i.link && (
+                <a href={i.link} target="_blank" rel="noopener noreferrer" className="mt-auto inline-flex items-center gap-1 pt-1 font-medium" style={{ color: THEME }}>
+                  Read more <Icon name="arrow-right" className="h-4 w-4" />
+                </a>
+              )}
+            </li>
+          ))}
+        </ul>
+        {newsLabel && (
+          <div className="text-center">
+            <SmartLink href="/news" className={buttonBase} style={{ backgroundColor: THEME, color: "#fff" }}>View all {newsLabel}</SmartLink>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Resources({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.title);
+  if (items.length === 0) return null;
+  const row = "flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-900/5 transition";
+  const inner = (i: Record<string, string>) => (
+    <>
+      <span {...iconCircle("h-12 w-12")}><Icon name="file-text" className="h-6 w-6" /></span>
+      <span className="min-w-0 flex-1">
+        <span className="flex flex-wrap items-center gap-2">
+          <span className="text-lg font-semibold text-gray-900">{i.title}</span>
+          {i.tag && <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">{i.tag}</span>}
+        </span>
+        {i.text && <span className="mt-0.5 block text-gray-600">{i.text}</span>}
+      </span>
+      {i.link && <Icon name="arrow-right" className="h-5 w-5 shrink-0 text-gray-400" />}
+    </>
+  );
+  return (
+    <section className="bg-gray-50">
+      <div className="mx-auto max-w-3xl space-y-8 px-6 py-14">
+        <SectionHead c={c} />
+        <ul className="space-y-3">
+          {items.map((i, n) => (
+            <li key={n}>{i.link ? <SmartLink href={i.link} className={`${row} hover:-translate-y-0.5 hover:shadow-md`}>{inner(i)}</SmartLink> : <div className={row}>{inner(i)}</div>}</li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function Workshops({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.title);
+  if (items.length === 0 && !configText(c, "empty_text") && !configText(c, "heading")) return null;
+  return (
+    <section>
+      <div className="mx-auto max-w-4xl space-y-8 px-6 py-14">
+        <div className="space-y-2 text-center">
+          {heading(configText(c, "heading"))}
+          {configText(c, "intro") && <p className="text-lg text-gray-600">{configText(c, "intro")}</p>}
+        </div>
+        {items.length > 0 ? (
+          <ul className="space-y-4">
+            {items.map((i, n) => (
+              <li key={n} className="flex flex-wrap items-center justify-between gap-5 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5">
+                <div className="min-w-0 flex-1 space-y-2">
+                  {i.when && <p className="inline-block rounded-full px-3 py-1 text-sm font-semibold" style={{ backgroundColor: `color-mix(in srgb, ${THEME} 12%, white)`, color: THEME }}>{i.when}</p>}
+                  <h3 className="text-xl font-semibold text-gray-900">{i.title}</h3>
+                  {i.where && <p className="flex items-center gap-1.5 text-sm text-gray-500"><Icon name="map-pin" className="h-4 w-4" />{i.where}</p>}
+                  {i.text && <p className="leading-relaxed text-gray-600">{i.text}</p>}
+                </div>
+                {i.link && (
+                  <SmartLink href={i.link} className="inline-flex items-center gap-1.5 rounded-xl px-5 py-2.5 font-medium text-white shadow-sm transition hover:opacity-85" style={{ backgroundColor: THEME }}>
+                    Sign up <Icon name="arrow-right" className="h-4 w-4" />
+                  </SmartLink>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="rounded-2xl bg-gray-50 px-6 py-8 text-center text-gray-600">{configText(c, "empty_text")}</p>
+        )}
+      </div>
+    </section>
+  );
+}
+
+// Only YouTube and Vimeo embed URLs get here (checked on save), shown through their privacy-friendly domains.
+function Video({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const src = configText(c, "video");
+  if (!src) return null;
+  return (
+    <section>
+      <div className="mx-auto max-w-4xl space-y-8 px-6 py-14">
+        <div className="space-y-2 text-center">
+          {heading(configText(c, "heading"))}
+          {configText(c, "intro") && <p className="text-lg text-gray-600">{configText(c, "intro")}</p>}
+        </div>
+        <iframe
+          title={configText(c, "heading") || "Video"}
+          src={src}
+          loading="lazy"
+          allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+          allowFullScreen
+          sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox"
+          referrerPolicy="strict-origin-when-cross-origin"
+          className="aspect-video w-full rounded-3xl border-0 bg-gray-100 shadow-lg"
+        />
+      </div>
+    </section>
+  );
+}
+
+function GalleryBlock({ block, urls }: { block: HomeBlock; urls: Urls }) {
+  const c = block.config;
+  const photos = configList(c).flatMap((i) => {
+    const url = urlOf(urls, i.photo_path);
+    return url ? [{ url, caption: i.caption ?? "" }] : [];
+  });
+  if (photos.length === 0) return null;
+  return (
+    <section>
+      <div className="mx-auto max-w-6xl space-y-8 px-6 py-14">
+        {heading(configText(c, "heading"))}
+        <Gallery photos={photos} columns={configText(c, "columns") === "4" ? 4 : 3} />
+      </div>
+    </section>
+  );
+}
+
+function Glossary({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const filtered = configList(c).filter((i) => i.term);
+  const items = configText(c, "sort") === "mine" ? filtered : [...filtered].sort((a, b) => a.term.localeCompare(b.term));
+  if (items.length === 0) return null;
+  return (
+    <section className="bg-gray-50">
+      <div className="mx-auto max-w-5xl space-y-8 px-6 py-14">
+        <div className="space-y-2 text-center">
+          {heading(configText(c, "heading"))}
+          {configText(c, "intro") && <p className="text-lg text-gray-600">{configText(c, "intro")}</p>}
+        </div>
+        <dl className="grid gap-4 md:grid-cols-2">
+          {items.map((i, n) => (
+            <div key={n} className="space-y-1 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-900/5">
+              <dt className="text-lg font-semibold" style={{ color: THEME }}>{i.term}</dt>
+              {i.definition && <dd className="leading-relaxed text-gray-600">{i.definition}</dd>}
+            </div>
+          ))}
+        </dl>
+      </div>
+    </section>
+  );
+}
+
+function RichText({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const center = configText(c, "align") === "center";
+  return (
+    <section className={configText(c, "background") === "tint" ? "bg-gray-50" : ""}>
+      <div className={`mx-auto max-w-3xl space-y-4 px-6 py-14 ${center ? "text-center" : ""}`}>
+        {configText(c, "heading") && <h2 className="text-3xl font-semibold" style={{ color: THEME }}>{configText(c, "heading")}</h2>}
+        <div className={`rich text-lg leading-relaxed text-gray-700 ${center ? "[&_ol]:inline-block [&_ul]:inline-block [&_ol]:text-left [&_ul]:text-left" : ""}`} dangerouslySetInnerHTML={{ __html: sanitizeRichText(configText(c, "body")) }} />
+      </div>
+    </section>
+  );
+}
+
+function Compliance({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.title || i.text);
+  if (items.length === 0) return null;
+  return (
+    <section className="border-t border-gray-200 bg-gray-50">
+      <div className="mx-auto max-w-6xl space-y-6 px-6 py-10">
+        {configText(c, "heading") && <h2 className="text-lg font-semibold text-gray-900">{configText(c, "heading")}</h2>}
+        <ul className="grid gap-6 md:grid-cols-3">
+          {items.map((i, n) => (
+            <li key={n} className="space-y-1.5 text-sm leading-relaxed text-gray-600">
+              {i.title && <h3 className="font-semibold text-gray-800">{i.title}</h3>}
+              {i.text && <p className="whitespace-pre-line">{i.text}</p>}
+              {i.link && <SmartLink href={i.link} className="inline-flex items-center gap-1 font-medium underline underline-offset-4" style={{ color: THEME }}>Read the full notice</SmartLink>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+// Safety information, so it uses fixed warm red regardless of theme color.
+function Crisis({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.name);
+  if (items.length === 0) return null;
+  return (
+    <section className="border-y border-red-100 bg-red-50">
+      <div className="mx-auto max-w-5xl space-y-8 px-6 py-12">
+        <div className="space-y-2 text-center">
+          {configText(c, "heading") && <h2 className="text-2xl font-semibold text-red-900 sm:text-3xl">{configText(c, "heading")}</h2>}
+          {configText(c, "intro") && <p className="text-lg text-red-900/80">{configText(c, "intro")}</p>}
+        </div>
+        <ul className="grid gap-4 sm:grid-cols-2">
+          {items.map((i, n) => (
+            <li key={n} className="space-y-2 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-red-100">
+              <h3 className="font-semibold text-gray-900">{i.name}</h3>
+              {i.phone && (
+                <a href={`tel:${i.phone.replace(/[^+0-9]/g, "")}`} className="flex items-center gap-2 text-2xl font-bold text-red-700 underline-offset-4 hover:underline">
+                  <Icon name="phone" className="h-5 w-5" />{i.phone}
+                </a>
+              )}
+              {i.text && <p className="text-gray-600">{i.text}</p>}
+              {i.link && <SmartLink href={i.link} className="inline-flex items-center gap-1 text-sm font-medium text-red-700 underline underline-offset-4">Website <Icon name="arrow-right" className="h-3.5 w-3.5" /></SmartLink>}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+export function BlockView({ block, urls, news, newsLabel }: { block: HomeBlock; urls: Urls; news: NewsItem[]; newsLabel: string | null }) {
   switch (block.type) {
     case "hero": return <Hero block={block} urls={urls} />;
     case "hero_split": return <HeroSplit block={block} urls={urls} />;
     case "quick_actions": return <QuickActions block={block} />;
+    case "partners":
     case "insurance": return <Insurance block={block} urls={urls} />;
     case "services": return <Services block={block} />;
     case "services_list": return <ServicesList block={block} urls={urls} />;
     case "settings": return <CareSettings block={block} />;
     case "ages": return <Ages block={block} />;
+    case "image_text":
     case "approach": return <Approach block={block} urls={urls} />;
     case "values": return <Values block={block} />;
     case "steps": return <Steps block={block} />;
@@ -901,6 +1142,15 @@ export function BlockView({ block, urls }: { block: HomeBlock; urls: Urls }) {
     case "contact_form": return <ContactForm block={block} />;
     case "contact_info": return <ContactInfo block={block} />;
     case "cta": return <Cta block={block} />;
+    case "news_feed": return <NewsFeed block={block} news={news} newsLabel={newsLabel} />;
+    case "resources": return <Resources block={block} />;
+    case "workshops": return <Workshops block={block} />;
+    case "video": return <Video block={block} />;
+    case "gallery": return <GalleryBlock block={block} urls={urls} />;
+    case "glossary": return <Glossary block={block} />;
+    case "rich_text": return <RichText block={block} />;
+    case "compliance": return <Compliance block={block} />;
+    case "crisis": return <Crisis block={block} />;
     case "photos": return <Photos block={block} urls={urls} />;
     case "credentials": return <Credentials block={block} urls={urls} />;
     case "stats": return <Stats block={block} />;

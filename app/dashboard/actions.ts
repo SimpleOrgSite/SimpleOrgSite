@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { MAX_ACTIONS, iconName, collectImagePaths, blockType, normalizeBlockLink, normalizeEmbed, type ActionItem, type BlockConfig, type BlockField } from "@/lib/blocks";
+import { MAX_ACTIONS, iconName, collectImagePaths, blockType, normalizeBlockLink, normalizeEmbed, videoEmbedUrl, type ActionItem, type BlockConfig, type BlockField } from "@/lib/blocks";
 import { NEWS_LAYOUTS, normalizeDate, normalizeLink, normalizeTags } from "@/lib/news";
 import { hasText, sanitizeRichText } from "@/lib/richtext";
 import { DIRECTOR_LAYOUTS, PHOTO_SHAPES } from "@/lib/directors";
@@ -417,6 +417,10 @@ export async function saveBlock(id: string, _: FormState, formData: FormData): P
       const embed = normalizeEmbed(String(formData.get(f.key) ?? ""));
       if (embed === null) return fail("That doesn't look like a form embed. Paste the embed code or the https:// link from your form provider.");
       config[f.key] = embed;
+    } else if (f.kind === "video") {
+      const video = videoEmbedUrl(String(formData.get(f.key) ?? ""));
+      if (video === null) return fail("That doesn't look like a YouTube or Vimeo link.");
+      config[f.key] = video;
     } else if (f.kind === "richtext") {
       config[f.key] = sanitizeRichText(String(formData.get(f.key) ?? ""));
     } else if (f.kind === "link") {

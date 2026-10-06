@@ -260,6 +260,15 @@ export function BlockForm({ block, fields, urls, pages, library }: { block: Home
               </div>
             );
           }
+          if (f.kind === "video") {
+            return (
+              <label key={f.key} className="block space-y-1">
+                <span className={label}>{f.label}</span>
+                <input name={f.key} defaultValue={configText(c, f.key)} placeholder="https://www.youtube.com/watch?v=…" className={input} />
+                {f.hint && <span className="block text-xs text-gray-500">{f.hint}</span>}
+              </label>
+            );
+          }
           if (f.kind === "embed") {
             return (
               <label key={f.key} className="block space-y-1">

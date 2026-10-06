@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { collectImagePaths, collectLibraryIds, libraryKey } from "@/lib/blocks";
-import { getHomeBlocks, getLibraryLogos, getSite, logoUrl } from "@/lib/site";
+import { getHomeBlocks, getLibraryLogos, getNews, getSite, logoUrl } from "@/lib/site";
 import { BlockView } from "./blocks";
 
 export const dynamic = "force-dynamic";
@@ -28,5 +28,9 @@ export default async function SitePage({ params }: PageProps<"/site/[domain]">) 
   const wanted = new Set(blocks.flatMap((b) => collectLibraryIds(b.config)));
   if (wanted.size > 0) for (const l of await getLibraryLogos()) if (wanted.has(l.id)) urls[libraryKey(l.id)] = l.url;
 
-  return <>{blocks.map((b) => <BlockView key={b.id} block={b} urls={urls} />)}</>;
+  // Stories are only fetched when a "Latest news" block needs them, and only linked to when the News page is on.
+  const news = blocks.some((b) => b.type === "news_feed") ? await getNews(site.id) : [];
+  const newsLabel = site.news_enabled ? site.news_label || "News" : null;
+
+  return <>{blocks.map((b) => <BlockView key={b.id} block={b} urls={urls} news={news} newsLabel={newsLabel} />)}</>;
 }
