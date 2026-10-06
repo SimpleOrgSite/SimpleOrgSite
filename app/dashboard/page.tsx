@@ -173,7 +173,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
               <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start">
                 <Card title="Blocks" description={page.is_home ? "Sections stacked top to bottom on your home page. With none turned on, visitors see a simple “Coming soon” page." : "Sections stacked top to bottom on this page."}>
                   {typeof blockError === "string" && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{blockError}</p>}
-                  <BlockList blocks={(blockRows ?? []) as PageBlock[]} themeColor={site.theme_color} pageId={page.id} />
+                  <BlockList blocks={(blockRows ?? []) as PageBlock[]} themeColor={site.theme_color} pageId={page.id} pages={pages.map((p) => ({ id: p.id, title: p.title }))} />
                 </Card>
                 <div className="space-y-6">
                   {!page.is_home && (

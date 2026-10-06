@@ -3,13 +3,16 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Icon, LibraryIcon } from "@/components/icons";
+import { button, input } from "../ui";
 import { BLOCK_GROUPS, BLOCK_TYPES, blockSummary, blockType, configText, type PageBlock } from "@/lib/blocks";
 import { BlockPreview } from "./block-preview";
-import { addBlock, deleteBlock, moveBlock, toggleBlock } from "../actions";
+import { addBlock, deleteBlock, moveBlock, moveBlockToPage, toggleBlock } from "../actions";
 
 const iconButton = "flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:pointer-events-none disabled:opacity-30";
 
-export function BlockList({ blocks, themeColor, pageId }: { blocks: PageBlock[]; themeColor: string; pageId: string }) {
+export function BlockList({ blocks, themeColor, pageId, pages }: { blocks: PageBlock[]; themeColor: string; pageId: string; pages: { id: string; title: string }[] }) {
+  const [moving, setMoving] = useState<string | null>(null);
+  const otherPages = pages.filter((p) => p.id !== pageId);
   const [previewing, setPreviewing] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const q = query.trim().toLowerCase();
@@ -21,7 +24,8 @@ export function BlockList({ blocks, themeColor, pageId }: { blocks: PageBlock[];
       {blocks.length > 0 ? (
         <ul className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200">
           {blocks.map((b, i) => (
-            <li key={b.id} className="flex items-center gap-3 px-4 py-3">
+            <li key={b.id} className="px-4 py-3">
+              <div className="flex items-center gap-3">
               <Link href={`/dashboard/blocks/${b.id}`} className="min-w-0 flex-1">
                 <span className={`flex items-baseline gap-2 ${b.enabled ? "" : "text-gray-400"}`}>
                   <span className="truncate font-medium">{configText(b.config, "internal_name") || blockType(b.type)?.label || b.type}</span>
@@ -48,7 +52,12 @@ export function BlockList({ blocks, themeColor, pageId }: { blocks: PageBlock[];
                   <button aria-label="Move down" title="Move down" disabled={i === blocks.length - 1} className={iconButton}><Icon name="arrow-down" /></button>
                 </form>
               </div>
-              <Link href={`/dashboard/blocks/${b.id}`} aria-label="Edit" title="Edit" className={iconButton}><LibraryIcon name="pencil" className="h-4 w-4" /></Link>
+              {otherPages.length > 0 && (
+                  <button type="button" aria-label="Move to another page" title="Move to another page" onClick={() => setMoving(moving === b.id ? null : b.id)} className={iconButton}>
+                    <LibraryIcon name="arrows-exchange" className="h-4 w-4" />
+                  </button>
+                )}
+                <Link href={`/dashboard/blocks/${b.id}`} aria-label="Edit" title="Edit" className={iconButton}><LibraryIcon name="pencil" className="h-4 w-4" /></Link>
               <form
                 action={deleteBlock.bind(null, b.id)}
                 onSubmit={(e) => {
@@ -57,6 +66,17 @@ export function BlockList({ blocks, themeColor, pageId }: { blocks: PageBlock[];
               >
                 <button aria-label="Delete" title="Delete" className={`${iconButton} hover:!bg-red-50 hover:!text-red-600`}><Icon name="trash" /></button>
               </form>
+              </div>
+              {moving === b.id && (
+                <form action={moveBlockToPage.bind(null, b.id)} className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-gray-50 p-3">
+                  <span className="text-sm text-gray-600">Move to the end of</span>
+                  <select name="page_id" defaultValue={otherPages[0]?.id} className={`${input} !w-auto min-w-48`}>
+                    {otherPages.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
+                  </select>
+                  <button className={button}>Move</button>
+                  <button type="button" onClick={() => setMoving(null)} className="text-sm text-gray-500 transition hover:text-gray-900">Cancel</button>
+                </form>
+              )}
             </li>
           ))}
         </ul>

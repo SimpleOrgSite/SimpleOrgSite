@@ -382,6 +382,18 @@ export async function deleteBlock(id: string) {
   redirect(`/dashboard?tab=${block ? `p-${block.page_id}` : "site"}`);
 }
 
+// Moves a block to the end of another page of the same site.
+export async function moveBlockToPage(id: string, formData: FormData) {
+  const { supabase, site } = await currentSite();
+  if (!site) return;
+  const pageId = String(formData.get("page_id") ?? "");
+  const { data: page } = await supabase.from("pages").select("id").eq("id", pageId).eq("site_id", site.id).maybeSingle();
+  if (!page) return;
+  const { data: last } = await supabase.from("page_blocks").select("sort_order").eq("page_id", pageId).order("sort_order", { ascending: false }).limit(1).maybeSingle();
+  await supabase.from("page_blocks").update({ page_id: pageId, sort_order: (last?.sort_order ?? -1) + 1 }).eq("id", id).eq("site_id", site.id);
+  revalidatePath("/dashboard");
+}
+
 export async function toggleBlock(id: string, enabled: boolean) {
   const { supabase, site } = await currentSite();
   if (!site) return;
