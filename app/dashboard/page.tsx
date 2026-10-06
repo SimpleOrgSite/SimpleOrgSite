@@ -35,21 +35,24 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
 
   const { data: site } = await supabase.from("sites").select("*").eq("owner_id", auth.user.id).maybeSingle();
   const { data: pageRows } = site
-    ? await supabase.from("pages").select("id, slug, title, is_home, show_in_menu, sort_order").eq("site_id", site.id).order("sort_order").order("created_at")
+    ? await supabase.from("pages").select("*").eq("site_id", site.id).order("sort_order").order("created_at")
     : { data: null };
-  // Home first, then the owner's order: the same order the site's menu uses.
-  const pages: SitePage[] = [...(pageRows ?? [])].sort((a, b) => Number(b.is_home) - Number(a.is_home));
+  // Home first, then the owner's order: the same order the site's menu uses. Inactive pages stay here so they can be edited.
+  const pages: SitePage[] = (pageRows ?? [])
+    .map((p) => ({ id: p.id, slug: p.slug, title: p.title, is_home: p.is_home, show_in_menu: p.show_in_menu, sort_order: p.sort_order, active: p.active !== false }))
+    .sort((a, b) => Number(b.is_home) - Number(a.is_home));
   const { data: newsRows } = site
     ? await supabase.from("news_items").select("id, name, story, link, tags, visible, published_on").eq("site_id", site.id).order("sort_order").order("created_at", { ascending: false })
     : { data: null };
   const logo = await logoUrl(site?.logo_path ?? null);
 
-  // One tab per page, between Site and News. New sites land on Domain until it's verified; after that, on the Site tab.
+  // One tab per page, after Domain, Site and Pages. New sites land on Domain until it's verified; after that, on the Site tab.
   const tabs = [
     { key: "domain", label: "Domain" },
     { key: "site", label: "Site" },
-    ...pages.map((p) => ({ key: `p-${p.id}`, label: p.title })),
-    { key: "news", label: "News" },
+    { key: "pages", label: "Pages" },
+    ...pages.map((p) => ({ key: `p-${p.id}`, label: p.active ? p.title : `${p.title} (off)` })),
+    { key: "news", label: "News stories" },
   ];
   const { tab: requested, error: blockError } = await searchParams;
   // "home" is the old name of the Home page's tab, so old links keep working.
@@ -134,9 +137,6 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
 
             {tab === "site" && (
               <>
-                <Card title="Pages" description="Each page appears in your site's menu and gets its own tab above, where you add blocks to it.">
-                  <PagesList pages={pages} />
-                </Card>
                 <Card title="Home page message" description="Shown on your home page until you turn on a block there.">
                   <MessageForm message={site.message} />
                 </Card>
@@ -153,6 +153,12 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
                   <FooterForm site={site} headerStyle={site.header_style} color={site.theme_color} siteName={site.site_name} logoUrl={logo} />
                 </Card>
               </>
+            )}
+
+            {tab === "pages" && (
+              <Card title="Pages" description="Each page appears in your site's menu and gets its own tab to the right, where you add blocks to it.">
+                <PagesList pages={pages} />
+              </Card>
             )}
 
             {page && (

@@ -443,7 +443,7 @@ export async function savePage(id: string, _: FormState, formData: FormData): Pr
   if (!page) return { error: "That page no longer exists." };
   const title = String(formData.get("title") ?? "").trim().slice(0, 60);
   if (!title) return { error: "Give the page a name." };
-  const row: { title: string; slug?: string; show_in_menu?: boolean } = { title };
+  const row: { title: string; slug?: string; show_in_menu?: boolean; active?: boolean } = { title };
   if (!page.is_home) {
     const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
     if (!SLUG.test(slug)) return { error: "The address can only use lowercase letters, numbers and dashes, like our-team." };
@@ -451,6 +451,7 @@ export async function savePage(id: string, _: FormState, formData: FormData): Pr
     if (clash) return { error: "Another page already uses that address." };
     row.slug = slug;
     row.show_in_menu = formData.get("show_in_menu") === "on";
+    row.active = formData.get("active") === "on";
   }
   const { error } = await supabase.from("pages").update(row).eq("id", id).eq("site_id", site.id);
   if (error) return { error: error.message };
@@ -467,7 +468,14 @@ export async function deletePage(id: string) {
   await removeBlockFiles(supabase, (blocks ?? []).map((b) => b.config as BlockConfig));
   await supabase.from("pages").delete().eq("id", id).eq("site_id", site.id); // its blocks go with it
   revalidatePath("/dashboard");
-  redirect("/dashboard?tab=site");
+  redirect("/dashboard?tab=pages");
+}
+
+export async function togglePageActive(id: string, active: boolean) {
+  const { supabase, site } = await currentSite();
+  if (!site) return;
+  await supabase.from("pages").update({ active }).eq("id", id).eq("site_id", site.id).eq("is_home", false);
+  revalidatePath("/dashboard");
 }
 
 export async function togglePageMenu(id: string, show: boolean) {

@@ -57,13 +57,18 @@ export const getNews = cache(async (siteId: string): Promise<NewsItem[]> => {
   return data ?? [];
 });
 
-export type SitePage = { id: string; slug: string; title: string; is_home: boolean; show_in_menu: boolean; sort_order: number };
+export type SitePage = { id: string; slug: string; title: string; is_home: boolean; show_in_menu: boolean; sort_order: number; active: boolean };
 
-// Every page of a site, Home first and then in the owner's order.
+// Every page that is switched on, Home first and then in the owner's order. Inactive pages don't exist as far as
+// visitors, the menu and link pickers are concerned. ("*" and the filter in code, rather than a column list and a
+// query filter, so the site keeps working in the moment between deploying and adding the "active" column.)
 export const getPages = cache(async (siteId: string): Promise<SitePage[]> => {
   const supabase = await createClient();
-  const { data } = await supabase.from("pages").select("id, slug, title, is_home, show_in_menu, sort_order").eq("site_id", siteId).order("sort_order").order("created_at");
-  return [...(data ?? [])].sort((a, b) => Number(b.is_home) - Number(a.is_home));
+  const { data } = await supabase.from("pages").select("*").eq("site_id", siteId).order("sort_order").order("created_at");
+  return (data ?? [])
+    .filter((p) => p.active !== false)
+    .map((p) => ({ id: p.id, slug: p.slug, title: p.title, is_home: p.is_home, show_in_menu: p.show_in_menu, sort_order: p.sort_order, active: true }))
+    .sort((a, b) => Number(b.is_home) - Number(a.is_home));
 });
 
 // Public view: only blocks that are turned on, top to bottom.
