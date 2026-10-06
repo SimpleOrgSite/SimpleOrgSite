@@ -153,4 +153,5 @@ export const ICON_LIBRARY: Record<string, { tags: string; paths: string[] }> = {
   "brand-youtube": { tags: "youtube google video streaming channel player play youtuber logo brand social youtube", paths: ["M2 8a4 4 0 0 1 4 -4h12a4 4 0 0 1 4 4v8a4 4 0 0 1 -4 4h-12a4 4 0 0 1 -4 -4v-8", "M10 9l5 3l-5 3l0 -6"] },
   "download": { tags: "download save arrow-down import get receive transfer fetch tray", paths: ["M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2", "M7 11l5 5l5 -5", "M12 4l0 12"] },
   "arrows-exchange": { tags: "swap switch transfer trade horizontal pointer navigation direction arrows exchange", paths: ["M7 10h14l-4 -4", "M17 14h-14l4 4"] },
+  "corner-down-right": { tags: "corner-arrow arrow corner down-right turn forward next indent direction navigation down right", paths: ["M6 6v6a3 3 0 0 0 3 3h10l-4 -4m0 8l4 -4"] },
 };

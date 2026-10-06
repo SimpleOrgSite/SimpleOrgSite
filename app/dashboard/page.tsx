@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { dnsRecordsFor } from "@/lib/domain";
 import { orderPages, type SitePage } from "@/lib/pages";
+import { LibraryIcon } from "@/components/icons";
 import { logoUrl } from "@/lib/site";
 import { logout } from "../login/actions";
 import { AddDomainForm, FooterForm, HeaderStyleForm, LogoForm, RemoveDomainForm, SiteNameForm, VerifyForm } from "./forms";
@@ -49,7 +50,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
     { key: "site", label: "Site" },
     { key: "pages", label: "Pages" },
   ];
-  const pageTabs = pages.map((p) => ({ key: `p-${p.id}`, label: p.active ? p.title : `${p.title} (off)` }));
+  const pageTabs = pages.map((p) => ({ key: `p-${p.id}`, label: p.active ? p.title : `${p.title} (off)`, parent: pages.find((x) => x.id === p.parent_id)?.title }));
   const { tab: requested, error: blockError } = await searchParams;
   // "home" is the old name of the Home page's tab, so old links keep working.
   const wanted = requested === "home" ? `p-${pages.find((p) => p.is_home)?.id}` : requested;
@@ -85,7 +86,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
             {/* The site's own tabs on gray; your pages on a soft blue, so they stand apart. */}
             <nav className="flex flex-wrap items-center gap-3">
               {[
-                { items: tabs, group: "bg-gray-200/60", idle: "text-gray-500 hover:text-gray-900" },
+                { items: tabs.map((t) => ({ ...t, parent: undefined })), group: "bg-gray-200/60", idle: "text-gray-500 hover:text-gray-900" },
                 { items: pageTabs, group: "bg-sky-100/80", idle: "text-sky-800/70 hover:text-sky-950" },
               ].map(({ items, group, idle }) =>
                 items.length > 0 && (
@@ -94,8 +95,11 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
                       <Link
                         key={t.key}
                         href={`/dashboard?tab=${t.key}`}
-                        className={`rounded-lg px-4 py-1.5 text-sm font-medium transition ${tab === t.key ? "bg-white text-gray-900 shadow-sm" : idle}`}
+                        title={t.parent ? `Sub page of ${t.parent}` : undefined}
+                        className={`flex items-center gap-1.5 rounded-lg px-4 py-1.5 text-sm font-medium transition ${tab === t.key ? "bg-white text-gray-900 shadow-sm" : idle}`}
                       >
+                        {/* A small corner arrow marks a sub page, so it reads as sitting under its parent. */}
+                        {t.parent && <LibraryIcon name="corner-down-right" className="h-3.5 w-3.5 opacity-60" />}
                         {t.label}
                       </Link>
                     ))}
