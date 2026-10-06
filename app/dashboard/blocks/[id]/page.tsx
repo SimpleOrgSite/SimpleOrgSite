@@ -17,7 +17,7 @@ export default async function EditBlock({ params }: PageProps<"/dashboard/blocks
   const { data: site } = await supabase.from("sites").select("id").eq("owner_id", auth.user.id).maybeSingle();
   if (!site) redirect("/dashboard");
 
-  const { data } = await supabase.from("home_blocks").select("id, type, enabled, config").eq("id", id).eq("site_id", site.id).maybeSingle();
+  const { data } = await supabase.from("page_blocks").select("id, page_id, type, enabled, config").eq("id", id).eq("site_id", site.id).maybeSingle();
   const def = data && blockType(data.type);
   if (!data || !def) notFound();
   const block = data as PageBlock;
