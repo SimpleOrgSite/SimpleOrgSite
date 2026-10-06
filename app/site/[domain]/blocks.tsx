@@ -6,11 +6,13 @@ import { PhotoCarousel } from "./photo-carousel";
 import { formatNewsDate, sortByDateDesc, storyText, type NewsItem } from "@/lib/news";
 import { SHAPE_CLASSES, type PhotoShape } from "@/lib/directors";
 import { sanitizeRichText } from "@/lib/richtext";
-import { AVAILABILITY, configItems, configList, configText, libraryKey, type HomeBlock } from "@/lib/blocks";
+import { AVAILABILITY, configItems, configList, configText, fileKey, libraryKey, type HomeBlock } from "@/lib/blocks";
 
 type Urls = Record<string, string>;
 // A row's own upload, or else the shared-library logo they picked.
 const logoOf = (row: Record<string, string>, urls: Urls) => urlOf(urls, row.logo_path) ?? urlOf(urls, libraryKey(row.logo_lib));
+// An uploaded document wins over a pasted link.
+const docHref = (row: Record<string, string>, urls: Record<string, string>) => (row.doc_file ? urls[fileKey(row.doc_file)] : "") || row.link || "";
 const urlOf = (urls: Urls, path: string | undefined) => (path ? urls[path] || null : null);
 
 const THEME = "var(--theme-color, #111827)";
@@ -796,7 +798,17 @@ function Locations({ block }: { block: HomeBlock }) {
 
 // Straight embed: the visitor talks to the form provider directly, and nothing they type touches our server or database.
 // Sandboxed so the framed page can run its own form but can't navigate or script ours.
-function ContactForm({ block }: { block: HomeBlock }) {
+// In the dashboard's preview sheet, third-party embeds are replaced by a neutral box rather than loading anything.
+function EmbedPlaceholder({ icon, label, className }: { icon: string; label: string; className: string }) {
+  return (
+    <div className={`flex flex-col items-center justify-center gap-3 bg-gray-100 text-gray-500 ${className}`}>
+      <LibraryIcon name={icon} className="h-10 w-10" />
+      <span className="font-medium">{label}</span>
+    </div>
+  );
+}
+
+function ContactForm({ block, preview }: { block: HomeBlock; preview?: boolean }) {
   const c = block.config;
   const src = configText(c, "embed");
   if (!src) return null;
@@ -808,7 +820,7 @@ function ContactForm({ block }: { block: HomeBlock }) {
           {configText(c, "intro") && <p className="text-lg text-gray-600">{configText(c, "intro")}</p>}
         </div>
         <div className="overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-gray-900/5">
-          <iframe
+          {preview ? <EmbedPlaceholder icon="clipboard-check" label="Your form appears here" className="h-80" /> : <iframe
             title={configText(c, "heading") || "Form"}
             src={src}
             loading="lazy"
@@ -816,7 +828,7 @@ function ContactForm({ block }: { block: HomeBlock }) {
             referrerPolicy="strict-origin-when-cross-origin"
             className="block w-full border-0"
             style={{ height: `${Number(configText(c, "height")) || 700}px` }}
-          />
+          />}
         </div>
         {/* Some providers refuse to be framed, so a plain link is always available. */}
         <p className="text-center text-sm text-gray-500">
@@ -912,12 +924,12 @@ function NewsFeed({ block, news, newsLabel }: { block: HomeBlock; news: NewsItem
   );
 }
 
-function Resources({ block }: { block: HomeBlock }) {
+function Resources({ block, urls }: { block: HomeBlock; urls: Urls }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.title);
   if (items.length === 0) return null;
   const row = "flex items-center gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-900/5 transition";
-  const inner = (i: Record<string, string>) => (
+  const inner = (i: Record<string, string>, href: string) => (
     <>
       <span {...iconCircle("h-12 w-12")}><Icon name="file-text" className="h-6 w-6" /></span>
       <span className="min-w-0 flex-1">
@@ -927,7 +939,7 @@ function Resources({ block }: { block: HomeBlock }) {
         </span>
         {i.text && <span className="mt-0.5 block text-gray-600">{i.text}</span>}
       </span>
-      {i.link && <Icon name="arrow-right" className="h-5 w-5 shrink-0 text-gray-400" />}
+      {href && <Icon name="arrow-right" className="h-5 w-5 shrink-0 text-gray-400" />}
     </>
   );
   return (
@@ -935,9 +947,10 @@ function Resources({ block }: { block: HomeBlock }) {
       <div className="mx-auto max-w-3xl space-y-8 px-6 py-14">
         <SectionHead c={c} />
         <ul className="space-y-3">
-          {items.map((i, n) => (
-            <li key={n}>{i.link ? <SmartLink href={i.link} className={`${row} hover:-translate-y-0.5 hover:shadow-md`}>{inner(i)}</SmartLink> : <div className={row}>{inner(i)}</div>}</li>
-          ))}
+          {items.map((i, n) => {
+            const href = docHref(i, urls);
+            return <li key={n}>{href ? <SmartLink href={href} className={`${row} hover:-translate-y-0.5 hover:shadow-md`}>{inner(i, href)}</SmartLink> : <div className={row}>{inner(i, href)}</div>}</li>;
+          })}
         </ul>
       </div>
     </section>
@@ -982,7 +995,7 @@ function Workshops({ block }: { block: HomeBlock }) {
 }
 
 // Only YouTube and Vimeo embed URLs get here (checked on save), shown through their privacy-friendly domains.
-function Video({ block }: { block: HomeBlock }) {
+function Video({ block, preview }: { block: HomeBlock; preview?: boolean }) {
   const c = block.config;
   const src = configText(c, "video");
   if (!src) return null;
@@ -993,7 +1006,7 @@ function Video({ block }: { block: HomeBlock }) {
           {heading(configText(c, "heading"))}
           {configText(c, "intro") && <p className="text-lg text-gray-600">{configText(c, "intro")}</p>}
         </div>
-        <iframe
+        {preview ? <EmbedPlaceholder icon="video" label="Your video plays here" className="aspect-video w-full rounded-3xl" /> : <iframe
           title={configText(c, "heading") || "Video"}
           src={src}
           loading="lazy"
@@ -1002,7 +1015,7 @@ function Video({ block }: { block: HomeBlock }) {
           sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox"
           referrerPolicy="strict-origin-when-cross-origin"
           className="aspect-video w-full rounded-3xl border-0 bg-gray-100 shadow-lg"
-        />
+        />}
       </div>
     </section>
   );
@@ -1273,7 +1286,7 @@ function Portal({ block }: { block: HomeBlock }) {
   );
 }
 
-function Downloads({ block }: { block: HomeBlock }) {
+function Downloads({ block, urls }: { block: HomeBlock; urls: Urls }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.title);
   if (items.length === 0) return null;
@@ -1282,20 +1295,23 @@ function Downloads({ block }: { block: HomeBlock }) {
       <div className="mx-auto max-w-3xl space-y-8 px-6 py-14">
         <SectionHead c={c} />
         <ul className="space-y-3">
-          {items.map((i, n) => (
+          {items.map((i, n) => {
+            const href = docHref(i, urls);
+            return (
             <li key={n} className="flex flex-wrap items-center gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-900/5">
               <span {...iconCircle("h-12 w-12")}><Icon name="file-text" className="h-6 w-6" /></span>
               <div className="min-w-0 flex-1">
                 <p className="text-lg font-semibold text-gray-900">{i.title}</p>
                 {i.text && <p className="text-gray-600">{i.text}</p>}
               </div>
-              {i.link && (
-                <SmartLink href={i.link} className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 font-medium text-white shadow-sm transition hover:opacity-85" style={{ backgroundColor: THEME }}>
+              {href && (
+                <SmartLink href={href} className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 font-medium text-white shadow-sm transition hover:opacity-85" style={{ backgroundColor: THEME }}>
                   <LibraryIcon name="download" className="h-4 w-4" /> Download
                 </SmartLink>
               )}
             </li>
-          ))}
+            );
+          })}
         </ul>
       </div>
     </section>
@@ -1407,7 +1423,7 @@ function Social({ block }: { block: HomeBlock }) {
   );
 }
 
-function MapOnly({ block }: { block: HomeBlock }) {
+function MapOnly({ block, preview }: { block: HomeBlock; preview?: boolean }) {
   const c = block.config;
   const address = configText(c, "address");
   if (!address) return null;
@@ -1416,19 +1432,19 @@ function MapOnly({ block }: { block: HomeBlock }) {
     <section>
       <div className="mx-auto max-w-6xl space-y-6 px-6 py-10">
         {configText(c, "heading") && <h2 className="text-center text-2xl font-semibold" style={{ color: THEME }}>{configText(c, "heading")}</h2>}
-        <iframe
+        {preview ? <EmbedPlaceholder icon="map-pin" label="Your map appears here" className={`${height} w-full rounded-3xl`} /> : <iframe
           title={`Map of ${address}`}
           src={`https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`}
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
           className={`${height} w-full rounded-3xl border-0 bg-gray-100 shadow-sm`}
-        />
+        />}
       </div>
     </section>
   );
 }
 
-export function BlockView({ block, urls, news, newsLabel }: { block: HomeBlock; urls: Urls; news: NewsItem[]; newsLabel: string | null }) {
+export function BlockView({ block, urls, news, newsLabel, preview }: { block: HomeBlock; urls: Urls; news: NewsItem[]; newsLabel: string | null; preview?: boolean }) {
   switch (block.type) {
     case "hero": return <Hero block={block} urls={urls} />;
     case "hero_split": return <HeroSplit block={block} urls={urls} />;
@@ -1451,13 +1467,13 @@ export function BlockView({ block, urls, news, newsLabel }: { block: HomeBlock; 
     case "careers": return <Careers block={block} />;
     case "positions": return <Positions block={block} />;
     case "locations": return <Locations block={block} />;
-    case "contact_form": return <ContactForm block={block} />;
+    case "contact_form": return <ContactForm block={block} preview={preview} />;
     case "contact_info": return <ContactInfo block={block} />;
     case "cta": return <Cta block={block} />;
     case "news_feed": return <NewsFeed block={block} news={news} newsLabel={newsLabel} />;
-    case "resources": return <Resources block={block} />;
+    case "resources": return <Resources block={block} urls={urls} />;
     case "workshops": return <Workshops block={block} />;
-    case "video": return <Video block={block} />;
+    case "video": return <Video block={block} preview={preview} />;
     case "gallery": return <GalleryBlock block={block} urls={urls} />;
     case "glossary": return <Glossary block={block} />;
     case "rich_text": return <RichText block={block} />;
@@ -1471,13 +1487,13 @@ export function BlockView({ block, urls, news, newsLabel }: { block: HomeBlock; 
     case "funding": return <Services block={block} />;
     case "timeline": return <Timeline block={block} />;
     case "portal": return <Portal block={block} />;
-    case "downloads": return <Downloads block={block} />;
+    case "downloads": return <Downloads block={block} urls={urls} />;
     case "access": return <Access block={block} />;
     case "spacer": return <Spacer block={block} />;
     case "two_columns": return <TwoColumns block={block} />;
     case "banner": return <Banner block={block} urls={urls} />;
     case "social": return <Social block={block} />;
-    case "map": return <MapOnly block={block} />;
+    case "map": return <MapOnly block={block} preview={preview} />;
     case "photos": return <Photos block={block} urls={urls} />;
     case "credentials": return <Credentials block={block} urls={urls} />;
     case "stats": return <Stats block={block} />;

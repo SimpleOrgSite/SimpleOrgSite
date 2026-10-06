@@ -150,7 +150,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
             {tab === "home" && (
               <Card title="Home page blocks" description="Sections stacked top to bottom on your home page. With none turned on, your home page message is shown instead.">
                 {typeof blockError === "string" && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{blockError}</p>}
-                <BlockList blocks={(blockRows ?? []) as HomeBlock[]} />
+                <BlockList blocks={(blockRows ?? []) as HomeBlock[]} themeColor={site.theme_color} />
               </Card>
             )}
 

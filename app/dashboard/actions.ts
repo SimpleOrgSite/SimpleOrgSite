@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { MAX_ACTIONS, iconName, collectImagePaths, blockType, normalizeBlockLink, normalizeEmbed, videoEmbedUrl, type ActionItem, type BlockConfig, type BlockField } from "@/lib/blocks";
+import { MAX_ACTIONS, iconName, collectImagePaths, collectFilePaths, blockType, normalizeBlockLink, normalizeEmbed, videoEmbedUrl, type ActionItem, type BlockConfig, type BlockField } from "@/lib/blocks";
 import { NEWS_LAYOUTS, normalizeDate, normalizeLink, normalizeTags } from "@/lib/news";
 import { hasText, sanitizeRichText } from "@/lib/richtext";
 import { DIRECTOR_LAYOUTS, PHOTO_SHAPES } from "@/lib/directors";
@@ -352,7 +352,7 @@ export async function moveNewsItem(id: string, by: -1 | 1) {
   revalidatePath("/dashboard");
 }
 
-// Blocks share the logos bucket (public, image-only, 5 MB; logos have their own 2 MB check), in the owner's own folder.
+// Block images share the logos bucket and documents use block-files; both are uploaded by the browser (see lib/upload.ts).
 async function currentSite() {
   const { supabase, user } = await currentUser();
   const { data: site } = await supabase.from("sites").select("id").eq("owner_id", user.id).maybeSingle();
@@ -372,15 +372,6 @@ export async function addBlock(type: string) {
   redirect(`/dashboard/blocks/${data.id}`);
 }
 
-async function uploadImage(supabase: Awaited<ReturnType<typeof createClient>>, userId: string, file: File): Promise<{ path: string } | { error: string }> {
-  const ext = IMAGE_TYPES[file.type];
-  if (!ext) return { error: "Images must be a PNG, JPG, WebP or SVG." };
-  if (file.size > 5 * 1024 * 1024) return { error: "Images must be under 5 MB." };
-  const path = `${userId}/block-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-  const { error } = await supabase.storage.from("logos").upload(path, file, { contentType: file.type });
-  return error ? { error: error.message } : { path };
-}
-
 export async function saveBlock(id: string, _: FormState, formData: FormData): Promise<FormState> {
   const { supabase, user, site } = await currentSite();
   if (!site) return { error: "No domain set." };
@@ -389,23 +380,28 @@ export async function saveBlock(id: string, _: FormState, formData: FormData): P
   if (!block || !def) return { error: "That block no longer exists." };
 
   const old = block.config as BlockConfig;
-  // Only paths this block already owned may be kept: the form is user input, so a spoofed path to someone else's file is ignored.
+  // Files are uploaded by the browser straight to Storage; the form carries only paths. The form is user input, so a path
+  // is accepted only if this block already owned it, or it has exactly the shape the uploader generates inside the owner's own folder.
   const owned = new Set(collectImagePaths(old));
-  const uploaded: string[] = [];
-  const fail = async (error: string): Promise<FormState> => {
-    if (uploaded.length) await supabase.storage.from("logos").remove(uploaded);
-    return { error };
-  };
-  // Resolves one image input: a new upload wins, then "remove", else the existing file stays.
-  const imageValue = async (name: string): Promise<{ path: string | null } | { error: string }> => {
-    const upload = formData.get(name);
-    if (upload instanceof File && upload.size > 0) {
-      const res = await uploadImage(supabase, user.id, upload);
-      if ("path" in res) uploaded.push(res.path);
-      return res;
+  const ownedFiles = new Set(collectFilePaths(old));
+  const freshImage = new RegExp(`^${user.id}/block-[\\w.-]+$`);
+  const freshFile = new RegExp(`^${user.id}/doc-[\\w.-]+\\.(pdf|doc|docx)$`);
+  const justUploaded = new Set<string>();
+  const fail = (error: string): FormState => ({ error });
+  // One image input: a just-uploaded file wins, then "remove", else the existing file stays.
+  const imageValue = (name: string): { path: string | null } => {
+    const fresh = String(formData.get(`${name}_new`) ?? "");
+    if (freshImage.test(fresh)) {
+      justUploaded.add(fresh);
+      return { path: fresh };
     }
     const keep = String(formData.get(`${name}_path`) ?? "");
     return { path: formData.get(`${name}_remove`) !== "on" && owned.has(keep) ? keep : null };
+  };
+  const fileValue = (name: string): { path: string; filename: string } | null => {
+    const path = String(formData.get(`${name}_file`) ?? "");
+    if (!ownedFiles.has(path) && !freshFile.test(path)) return null;
+    return { path, filename: String(formData.get(`${name}_filename`) ?? "").slice(0, 120) };
   };
 
   // Every block has an owner-only label, shown in the dashboard and never on the site.
@@ -440,9 +436,7 @@ export async function saveBlock(id: string, _: FormState, formData: FormData): P
       }
       config[f.key] = items;
     } else if (f.kind === "image") {
-      const res = await imageValue(f.key);
-      if ("error" in res) return fail(res.error);
-      config[`${f.key}_path`] = res.path;
+      config[`${f.key}_path`] = imageValue(f.key).path;
     } else if (f.kind === "list") {
       // rows arrive in page order as repeated "<key>__rows" uids, each row's inputs named "<key>__<uid>__<sub>".
       const rows: Record<string, string | null>[] = [];
@@ -453,16 +447,20 @@ export async function saveBlock(id: string, _: FormState, formData: FormData): P
         for (const sub of f.fields) {
           const name = `${f.key}__${uid}__${sub.key}`;
           if (sub.kind === "image") {
-            const res = await imageValue(name);
-            if ("error" in res) return fail(res.error);
+            const res = imageValue(name);
             // A logo picked from the shared library replaces any file of their own, unless they just uploaded a new one.
             const picked = String(formData.get(`${name}_lib`) ?? "");
-            const justUploaded = uploaded.includes(res.path ?? "");
-            const hit = sub.library && picked && !justUploaded ? (await getLibraryLogos()).find((l) => l.id === picked && l.category === sub.library) : undefined;
+            const wasJustUploaded = justUploaded.has(res.path ?? "");
+            const hit = sub.library && picked && !wasJustUploaded ? (await getLibraryLogos()).find((l) => l.id === picked && l.category === sub.library) : undefined;
             row[`${sub.key}_path`] = hit ? null : res.path;
             if (sub.library) row[`${sub.key}_lib`] = hit?.id ?? "";
             if (hit) libraryName = hit.name;
             filled ||= !!res.path || !!hit;
+          } else if (sub.kind === "file") {
+            const file = fileValue(name);
+            row[`${sub.key}_file`] = file?.path ?? null;
+            row[`${sub.key}_filename`] = file?.filename ?? null;
+            filled ||= !!file;
           } else if (sub.kind === "link") {
             const link = normalizeBlockLink(String(formData.get(name) ?? ""));
             if (link === null) return fail(`${sub.label}: use a web address, a page like /about, or a phone or email link.`);
@@ -488,6 +486,9 @@ export async function saveBlock(id: string, _: FormState, formData: FormData): P
   const kept = new Set(collectImagePaths(config));
   const unused = [...owned].filter((p) => !kept.has(p));
   if (unused.length) await supabase.storage.from("logos").remove(unused);
+  const keptFiles = new Set(collectFilePaths(config));
+  const unusedFiles = [...ownedFiles].filter((p) => !keptFiles.has(p));
+  if (unusedFiles.length) await supabase.storage.from("block-files").remove(unusedFiles);
   revalidatePath("/dashboard");
   return { ok: "Saved." };
 }
@@ -498,6 +499,8 @@ export async function deleteBlock(id: string) {
   const { data: block } = await supabase.from("home_blocks").select("config").eq("id", id).eq("site_id", site.id).maybeSingle();
   const images = block ? collectImagePaths(block.config as BlockConfig) : [];
   if (images.length) await supabase.storage.from("logos").remove(images);
+  const files = block ? collectFilePaths(block.config as BlockConfig) : [];
+  if (files.length) await supabase.storage.from("block-files").remove(files);
   await supabase.from("home_blocks").delete().eq("id", id).eq("site_id", site.id);
   revalidatePath("/dashboard");
   redirect("/dashboard?tab=home");

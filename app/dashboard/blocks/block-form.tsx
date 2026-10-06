@@ -1,32 +1,64 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useRef, useState } from "react";
+import { createContext, useActionState, useContext, useRef, useState } from "react";
 import { ICON_LIBRARY } from "@/components/icon-library";
 import { Icon, LibraryIcon } from "@/components/icons";
 import { MAX_ACTIONS, configItems, configList, configText, type BlockField, type HomeBlock, type LibraryLogo } from "@/lib/blocks";
 import type { PageLink } from "@/lib/site";
 import { RichEditor } from "../rich-editor";
+import { publicUrl, uploadToBucket } from "@/lib/upload";
 import { deleteBlock, saveBlock, toggleBlock, type FormState } from "../actions";
 import { button, dangerLink, file, input, label, tile } from "../ui";
 
 const iconButton = "flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:pointer-events-none disabled:opacity-30";
 
-// An image input that keeps the existing file unless a new one is chosen or "remove" is ticked.
-// "name" is both the file input and the prefix of its hidden "_path" / "_remove" / "_lib" companions read by saveBlock.
+// Uploads go straight from the browser to Storage, so the Save button waits until every one has finished.
+const UploadBusy = createContext<(delta: number) => void>(() => {});
+
+// Runs an upload while keeping the form's Save button disabled, and reports an error message if it fails.
+function useUpload(bucket: "logos" | "block-files") {
+  const track = useContext(UploadBusy);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState("");
+  const upload = async (file: File) => {
+    setError("");
+    setUploading(true);
+    track(1);
+    const res = await uploadToBucket(bucket, file);
+    track(-1);
+    setUploading(false);
+    if ("error" in res) {
+      setError(res.error);
+      return null;
+    }
+    return res.path;
+  };
+  return { upload, uploading, error };
+}
+
+// An image input. A new file uploads as soon as it's chosen; the form then carries only its path ("_new").
+// "name" prefixes the hidden "_path" (existing) / "_remove" / "_lib" / "_new" companions read by saveBlock.
 // With a "library", the owner can also pick a ready-made logo from the shared logo_library table.
 function ImageInput({ name, path, urls, hint, library, libId }: { name: string; path: string; urls: Record<string, string>; hint?: string; library?: LibraryLogo[]; libId?: string }) {
   const url = path ? urls[path] : null;
   const [picked, setPicked] = useState(library?.some((l) => l.id === libId) ? (libId as string) : "");
+  const [fresh, setFresh] = useState("");
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const { upload, uploading, error } = useUpload("logos");
   const chosen = library?.find((l) => l.id === picked);
   const q = query.trim().toLowerCase();
   const shown = (library ?? []).filter((l) => !q || l.name.toLowerCase().includes(q));
+  const clearFile = () => {
+    setFresh("");
+    if (fileRef.current) fileRef.current.value = "";
+  };
   return (
     <div className="space-y-2">
       <input type="hidden" name={`${name}_lib`} value={picked} />
+      <input type="hidden" name={`${name}_new`} value={fresh} />
       {chosen && (
         <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-2 pr-3">
           {/* eslint-disable-next-line @next/next/no-img-element -- shared library logo */}
@@ -35,7 +67,14 @@ function ImageInput({ name, path, urls, hint, library, libId }: { name: string; 
           <button type="button" onClick={() => setPicked("")} className="text-sm text-gray-500 transition hover:text-red-600">Remove</button>
         </div>
       )}
-      {url && !chosen && (
+      {fresh && !chosen && (
+        <div className="space-y-2">
+          {/* eslint-disable-next-line @next/next/no-img-element -- just uploaded, arbitrary dimensions */}
+          <img src={publicUrl("logos", fresh)} alt="" className="h-24 w-auto max-w-full rounded-xl border border-gray-200 bg-white object-contain" />
+          <button type="button" onClick={clearFile} className="text-sm text-gray-500 transition hover:text-red-600">Remove this image</button>
+        </div>
+      )}
+      {url && !chosen && !fresh && (
         <div className="space-y-2">
           <input type="hidden" name={`${name}_path`} value={path} />
           {/* eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions */}
@@ -67,8 +106,8 @@ function ImageInput({ name, path, urls, hint, library, libId }: { name: string; 
                       setPicked(l.id);
                       setOpen(false);
                       setQuery("");
-                      // A leftover file would win over the pick on save, so clear it.
-                      if (fileRef.current) fileRef.current.value = "";
+                      // An uploaded file would win over the pick on save, so drop it.
+                      clearFile();
                     }}
                     className="flex flex-col items-center gap-1.5 rounded-xl border border-gray-200 p-2 text-center transition hover:border-gray-400 hover:bg-gray-50"
                   >
@@ -84,8 +123,63 @@ function ImageInput({ name, path, urls, hint, library, libId }: { name: string; 
           <p className="text-xs text-gray-500">Or upload your own:</p>
         </>
       )}
-      <input ref={fileRef} type="file" name={name} accept="image/png,image/jpeg,image/webp,image/svg+xml" className={file} />
+      {/* No "name": the file is uploaded by the browser, never posted with the form. */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+        disabled={uploading}
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          const uploaded = await upload(file);
+          if (uploaded) {
+            setFresh(uploaded);
+            setPicked("");
+          } else if (fileRef.current) fileRef.current.value = "";
+        }}
+        className={file}
+      />
+      {uploading && <p className="text-xs text-gray-500">Uploading…</p>}
+      {error && <p className="text-xs text-red-600">{error}</p>}
       {hint !== undefined && <p className="text-xs text-gray-500">{hint}</p>}
+    </div>
+  );
+}
+
+// A document (PDF / Word). Uploads on selection; the form carries its storage path and original name.
+function FileInput({ name, path, filename }: { name: string; path: string; filename: string }) {
+  const [current, setCurrent] = useState(path ? { path, filename } : null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const { upload, uploading, error } = useUpload("block-files");
+  return (
+    <div className="space-y-2">
+      <input type="hidden" name={`${name}_file`} value={current?.path ?? ""} />
+      <input type="hidden" name={`${name}_filename`} value={current?.filename ?? ""} />
+      {current && (
+        <div className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-3 py-2">
+          <Icon name="file-text" className="h-5 w-5 shrink-0 text-gray-400" />
+          <span className="min-w-0 flex-1 truncate text-sm font-medium">{current.filename || "Uploaded file"}</span>
+          <button type="button" onClick={() => { setCurrent(null); if (fileRef.current) fileRef.current.value = ""; }} className="text-sm text-gray-500 transition hover:text-red-600">Remove</button>
+        </div>
+      )}
+      <input
+        ref={fileRef}
+        type="file"
+        accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+        disabled={uploading}
+        onChange={async (e) => {
+          const picked = e.target.files?.[0];
+          if (!picked) return;
+          const uploaded = await upload(picked);
+          if (uploaded) setCurrent({ path: uploaded, filename: picked.name });
+          if (fileRef.current) fileRef.current.value = "";
+        }}
+        className={file}
+      />
+      {uploading && <p className="text-xs text-gray-500">Uploading…</p>}
+      {error && <p className="text-xs text-red-600">{error}</p>}
+      <p className="text-xs text-gray-500">PDF or Word, under 10 MB. An uploaded file is used instead of the link below.</p>
     </div>
   );
 }
@@ -201,7 +295,9 @@ function ListField({ field, initial, urls, library, pages }: { field: Extract<Bl
             return (
               <div key={sub.key} className="space-y-1">
                 <span className={label}>{sub.label}</span>
-                {sub.kind === "link" ? (
+                {sub.kind === "file" ? (
+                  <FileInput name={name} path={row.values[`${sub.key}_file`] ?? ""} filename={row.values[`${sub.key}_filename`] ?? ""} />
+                ) : sub.kind === "link" ? (
                   <LinkInput name={name} defaultValue={row.values[sub.key] ?? ""} pages={pages} label={sub.label} />
                 ) : sub.kind === "icon" ? (
                   <IconPicker name={name} defaultValue={row.values[sub.key] ?? ""} label={sub.label} />
@@ -234,9 +330,10 @@ function ListField({ field, initial, urls, library, pages }: { field: Extract<Bl
 // Renders whatever fields the block type declares in lib/blocks.ts.
 export function BlockForm({ block, fields, urls, pages, library }: { block: HomeBlock; fields: readonly BlockField[]; urls: Record<string, string>; pages: PageLink[]; library: LibraryLogo[] }) {
   const [state, action, pending] = useActionState(saveBlock.bind(null, block.id), null as FormState);
+  const [uploads, setUploads] = useState(0);
   const c = block.config;
   return (
-    <>
+    <UploadBusy.Provider value={(delta) => setUploads((n) => n + delta)}>
       <form action={action} className="space-y-5">
         <label className="block space-y-1">
           <span className={label}>Internal name</span>
@@ -330,7 +427,7 @@ export function BlockForm({ block, fields, urls, pages, library }: { block: Home
         {state?.error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>}
         {state?.ok && <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">{state.ok}</p>}
         <div className="flex items-center gap-4">
-          <button disabled={pending} className={button}>{pending ? "Saving…" : "Save"}</button>
+          <button disabled={pending || uploads > 0} className={button}>{pending ? "Saving…" : uploads > 0 ? "Uploading…" : "Save"}</button>
           <Link href="/dashboard?tab=home" className={dangerLink}>Back to list</Link>
         </div>
       </form>
@@ -351,6 +448,6 @@ export function BlockForm({ block, fields, urls, pages, library }: { block: Home
           <button className={dangerLink}>Delete</button>
         </form>
       </div>
-    </>
+    </UploadBusy.Provider>
   );
 }

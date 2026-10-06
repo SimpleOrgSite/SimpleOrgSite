@@ -15,7 +15,7 @@ export const MAX_ACTIONS = 4;
 
 // One repeatable row inside a "list" field. An image sub-field "logo" is stored as "logo_path".
 // "library" on an image sub-field names a logo_library category the owner can pick from instead of uploading.
-export type ListSub = { key: string; label: string; kind: "text" | "textarea" | "image" | "icon" | "link"; placeholder?: string; library?: string };
+export type ListSub = { key: string; label: string; kind: "text" | "textarea" | "image" | "icon" | "link" | "file"; placeholder?: string; library?: string };
 export type LibraryLogo = { id: string; category: string; name: string; url: string };
 
 type Field =
@@ -382,11 +382,11 @@ export const BLOCK_TYPES = [
     type: "resources",
     group: "content",
     label: "Resources",
-    hint: "A list of helpful links and guides for parents (link to PDFs or pages)",
+    hint: "A list of helpful guides and links for parents, with uploaded PDFs or links",
     fields: [
       { key: "heading", label: "Heading", kind: "text", placeholder: "Resources for parents" },
       { key: "subhead", label: "Subheading", kind: "text" },
-      { key: "items", label: "Resources", kind: "list", itemLabel: "resource", max: 20, fields: [{ key: "title", label: "Title", kind: "text", placeholder: "Visual schedule starter kit" }, { key: "tag", label: "Label (optional)", kind: "text", placeholder: "PDF" }, { key: "text", label: "Description", kind: "textarea" }, { key: "link", label: "Link", kind: "link" }] },
+      { key: "items", label: "Resources", kind: "list", itemLabel: "resource", max: 20, fields: [{ key: "title", label: "Title", kind: "text", placeholder: "Visual schedule starter kit" }, { key: "tag", label: "Label (optional)", kind: "text", placeholder: "PDF" }, { key: "text", label: "Description", kind: "textarea" }, { key: "doc", label: "Upload a file (PDF or Word)", kind: "file" }, { key: "link", label: "Or link to a file or page", kind: "link" }] },
     ],
     defaults: { heading: "Resources for parents", subhead: "", items: [{ title: "Visual schedule starter kit", tag: "PDF", text: "Printable cards to help your child follow daily routines.", link: "" }, { title: "ABA glossary for families", tag: "Guide", text: "Plain-language explanations of the words you'll hear.", link: "" }] },
   },
@@ -607,11 +607,11 @@ export const BLOCK_TYPES = [
     type: "downloads",
     group: "start",
     label: "Forms to download",
-    hint: "Intake packets and forms families can fill out before visiting (link to the files)",
+    hint: "Intake packets and forms families can download before visiting, uploaded or linked",
     fields: [
       { key: "heading", label: "Heading", kind: "text", placeholder: "Forms to complete before your visit" },
       { key: "subhead", label: "Subheading", kind: "text" },
-      { key: "items", label: "Forms", kind: "list", itemLabel: "form", max: 12, fields: [{ key: "title", label: "Title", kind: "text", placeholder: "New client intake packet" }, { key: "text", label: "Description (optional)", kind: "text" }, { key: "link", label: "Link to the file", kind: "link" }] },
+      { key: "items", label: "Forms", kind: "list", itemLabel: "form", max: 12, fields: [{ key: "title", label: "Title", kind: "text", placeholder: "New client intake packet" }, { key: "text", label: "Description (optional)", kind: "text" }, { key: "doc", label: "Upload a file (PDF or Word)", kind: "file" }, { key: "link", label: "Or link to the file", kind: "link" }] },
     ],
     defaults: { heading: "Forms to complete before your visit", subhead: "", items: [{ title: "New client intake packet", text: "Takes about 15 minutes.", link: "" }, { title: "Insurance information form", text: "", link: "" }] },
   },
@@ -856,6 +856,19 @@ export function collectImagePaths(c: BlockConfig): string[] {
   scan(c);
   return out;
 }
+
+// Documents uploaded to a block, stored in list rows as "<key>_file" (the key sub-field "doc" gives "doc_file") with the
+// original name in "<key>_filename". They live in the "block-files" bucket, so they are tracked apart from images.
+export function collectFilePaths(c: BlockConfig): string[] {
+  const out: string[] = [];
+  for (const v of Object.values(c)) {
+    if (!Array.isArray(v)) continue;
+    for (const row of v) if (row && typeof row === "object") for (const [k, p] of Object.entries(row)) if (k.endsWith("_file") && typeof p === "string" && p) out.push(p);
+  }
+  return out;
+}
+// Key renderers use to find an uploaded document's URL in the same path-to-URL map as images.
+export const fileKey = (path: string | undefined) => (path ? `file:${path}` : "");
 
 // Ids of shared-library logos a block uses, stored in list rows as "<key>_lib". Not files the owner holds, so never cleaned up.
 export function collectLibraryIds(c: BlockConfig): string[] {

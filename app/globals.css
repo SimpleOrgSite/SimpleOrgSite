@@ -38,3 +38,10 @@ body {
   .marquee { overflow-x: auto; }
   .marquee-track { animation: none; }
 }
+
+/* Bottom sheet for block previews. */
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes sheet-fade { from { opacity: 0; } to { opacity: 1; } }
+.sheet-up { animation: sheet-up 0.32s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.sheet-fade { animation: sheet-fade 0.25s ease-out; }
+@media (prefers-reduced-motion: reduce) { .sheet-up, .sheet-fade { animation: none; } }

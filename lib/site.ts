@@ -49,6 +49,12 @@ export async function logoUrl(path: string | null) {
   return supabase.storage.from("logos").getPublicUrl(path).data.publicUrl;
 }
 
+// Uploaded block documents (PDF / Word) live in their own public bucket.
+export async function fileUrl(path: string) {
+  const supabase = await createClient();
+  return supabase.storage.from("block-files").getPublicUrl(path).data.publicUrl;
+}
+
 export type AboutSection = { id: string; title: string; body: string; anchor: string };
 
 const slugify = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "section";

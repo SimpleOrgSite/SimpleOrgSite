@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import { collectImagePaths, collectLibraryIds, libraryKey } from "@/lib/blocks";
-import { getHomeBlocks, getLibraryLogos, getNews, getSite, logoUrl } from "@/lib/site";
+import { collectFilePaths, collectImagePaths, collectLibraryIds, fileKey, libraryKey } from "@/lib/blocks";
+import { fileUrl, getHomeBlocks, getLibraryLogos, getNews, getSite, logoUrl } from "@/lib/site";
 import { BlockView } from "./blocks";
 
 export const dynamic = "force-dynamic";
@@ -24,6 +24,8 @@ export default async function SitePage({ params }: PageProps<"/site/[domain]">) 
 
   const urls: Record<string, string> = {};
   for (const path of blocks.flatMap((b) => collectImagePaths(b.config))) urls[path] = (await logoUrl(path)) ?? "";
+
+  for (const path of blocks.flatMap((b) => collectFilePaths(b.config))) urls[fileKey(path)] = await fileUrl(path);
 
   const wanted = new Set(blocks.flatMap((b) => collectLibraryIds(b.config)));
   if (wanted.size > 0) for (const l of await getLibraryLogos()) if (wanted.has(l.id)) urls[libraryKey(l.id)] = l.url;
