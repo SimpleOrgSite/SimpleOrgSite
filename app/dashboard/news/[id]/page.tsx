@@ -1,13 +1,14 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { allTags } from "@/lib/news";
+import { allTags, safeBack } from "@/lib/news";
 import { createClient } from "@/lib/supabase/server";
 import { NewsForm } from "../news-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function EditStory({ params }: PageProps<"/dashboard/news/[id]">) {
+export default async function EditStory({ params, searchParams }: PageProps<"/dashboard/news/[id]">) {
   const { id } = await params;
+  const back = safeBack((await searchParams).back as string | undefined);
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/login");
@@ -21,10 +22,10 @@ export default async function EditStory({ params }: PageProps<"/dashboard/news/[
   return (
     <div className="flex-1 bg-gray-50">
       <main className="mx-auto max-w-2xl space-y-6 px-6 py-10">
-        <Link href="/dashboard?tab=news" className="text-sm text-gray-500 transition hover:text-gray-900">← Back</Link>
+        <Link href={back} className="text-sm text-gray-500 transition hover:text-gray-900">← Back</Link>
         <h1 className="text-2xl font-semibold">{item.name}</h1>
         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5">
-          <NewsForm item={item} tagSuggestions={allTags(items ?? [])} today="" />
+          <NewsForm back={back} item={item} tagSuggestions={allTags(items ?? [])} today="" />
         </div>
       </main>
     </div>

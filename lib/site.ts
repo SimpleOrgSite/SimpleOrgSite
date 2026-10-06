@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { blockAnchors, configText, type LibraryLogo, type PageBlock } from "@/lib/blocks";
 import type { NewsItem } from "@/lib/news";
+import { orderPages, type SitePage } from "@/lib/pages";
 import { createClient } from "@/lib/supabase/server";
 
 export type Site = {
@@ -19,14 +20,13 @@ export type Site = {
   footer_show_nav: boolean;
   footer_show_email: boolean;
   footer_email: string;
-  message: string;
 };
 
 export const getSite = cache(async (domain: string): Promise<Site | null> => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("sites")
-    .select("id, site_name, logo_path, logo_size, show_name_with_logo, header_style, theme_color, footer_match_header, footer_style, footer_show_logo, footer_show_name, footer_show_copyright, footer_show_nav, footer_show_email, footer_email, message")
+    .select("id, site_name, logo_path, logo_size, show_name_with_logo, header_style, theme_color, footer_match_header, footer_style, footer_show_logo, footer_show_name, footer_show_copyright, footer_show_nav, footer_show_email, footer_email")
     .eq("domain", decodeURIComponent(domain).toLowerCase())
     .maybeSingle();
   return data;
@@ -57,7 +57,7 @@ export const getNews = cache(async (siteId: string): Promise<NewsItem[]> => {
   return data ?? [];
 });
 
-export type SitePage = { id: string; slug: string; title: string; is_home: boolean; show_in_menu: boolean; sort_order: number; active: boolean };
+export type { SitePage };
 
 // Every page that is switched on, Home first and then in the owner's order. Inactive pages don't exist as far as
 // visitors, the menu and link pickers are concerned. ("*" and the filter in code, rather than a column list and a
@@ -65,10 +65,11 @@ export type SitePage = { id: string; slug: string; title: string; is_home: boole
 export const getPages = cache(async (siteId: string): Promise<SitePage[]> => {
   const supabase = await createClient();
   const { data } = await supabase.from("pages").select("*").eq("site_id", siteId).order("sort_order").order("created_at");
-  return (data ?? [])
-    .filter((p) => p.active !== false)
-    .map((p) => ({ id: p.id, slug: p.slug, title: p.title, is_home: p.is_home, show_in_menu: p.show_in_menu, sort_order: p.sort_order, active: true }))
-    .sort((a, b) => Number(b.is_home) - Number(a.is_home));
+  return orderPages(
+    (data ?? [])
+      .filter((p) => p.active !== false)
+      .map((p) => ({ id: p.id, slug: p.slug, title: p.title, is_home: p.is_home, show_in_menu: p.show_in_menu, sort_order: p.sort_order, active: true, parent_id: p.parent_id ?? null })),
+  );
 });
 
 // Public view: only blocks that are turned on, top to bottom.
@@ -115,10 +116,12 @@ export async function sitePageLinks(siteId: string): Promise<PageLink[]> {
   const links: PageLink[] = [];
   for (const page of pages) {
     const base = page.is_home ? "/" : `/${page.slug}`;
-    links.push({ href: base, label: page.title });
+    const parent = pages.find((p) => p.id === page.parent_id);
+    const name = parent ? `${parent.title} › ${page.title}` : page.title;
+    links.push({ href: base, label: name });
     const blocks = (data ?? []).filter((b) => b.page_id === page.id);
     const anchors = blockAnchors(blocks);
-    for (const b of blocks) if (anchors[b.id]) links.push({ href: `${base}#${anchors[b.id]}`, label: `${page.title} › ${configText(b.config, "internal_name")}` });
+    for (const b of blocks) if (anchors[b.id]) links.push({ href: `${base}#${anchors[b.id]}`, label: `${name} › ${configText(b.config, "internal_name")}` });
   }
   return links;
 }

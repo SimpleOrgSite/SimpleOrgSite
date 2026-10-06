@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { Icon, LibraryIcon } from "@/components/icons";
-import type { SitePage } from "@/lib/site";
-import { addPage, deletePage, movePage, savePage, togglePageActive, type FormState } from "../actions";
+import type { SitePage } from "@/lib/pages";
+import { addPage, deletePage, movePage, savePage, savePagePlacement, togglePageActive, type FormState } from "../actions";
 import { button, dangerLink, input, label, tile } from "../ui";
 
 const iconButton = "flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:pointer-events-none disabled:opacity-30";
@@ -12,18 +12,21 @@ const iconButton = "flex h-8 w-8 items-center justify-center rounded-lg text-gra
 // The Site tab's list of pages: switch one on or off, edit it, delete it, reorder, or add a new one.
 export function PagesList({ pages }: { pages: SitePage[] }) {
   const [state, action, pending] = useActionState(addPage, null as FormState);
-  const others = pages.filter((p) => !p.is_home);
   return (
     <div className="space-y-5">
       <ul className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200">
         {pages.map((p) => {
-          const i = others.indexOf(p);
+          // Arrows move a page among its siblings: other top-level pages, or the other sub pages under the same parent.
+          const parent = pages.find((x) => x.id === p.parent_id);
+          const sibs = pages.filter((x) => !x.is_home && (parent ? x.parent_id === parent.id : !x.parent_id || !pages.some((y) => y.id === x.parent_id)));
+          const i = sibs.indexOf(p);
           return (
-            <li key={p.id} className="flex items-center gap-3 px-4 py-3">
+            <li key={p.id} className={`flex items-center gap-3 px-4 py-3 ${parent ? "bg-gray-50/60 pl-10" : ""}`}>
               <Link href={`/dashboard?tab=p-${p.id}`} className="min-w-0 flex-1">
                 <span className={`block truncate font-medium ${p.active ? "" : "text-gray-400"}`}>{p.title}</span>
                 <span className="block truncate text-sm text-gray-500">
                   {p.is_home ? "/ (your home page)" : `/${p.slug}`}
+                  {parent && ` · sub page of ${parent.title}`}
                   {!p.is_home && !p.active && " · inactive: hidden from visitors"}
                   {!p.is_home && p.active && !p.show_in_menu && " · not in the menu"}
                 </span>
@@ -47,10 +50,10 @@ export function PagesList({ pages }: { pages: SitePage[] }) {
                 {!p.is_home && (
                   <>
                     <form action={movePage.bind(null, p.id, -1)}>
-                      <button aria-label="Move up" title="Move up" disabled={i === 0} className={iconButton}><Icon name="arrow-up" /></button>
+                      <button aria-label="Move up" title="Move up" disabled={i <= 0} className={iconButton}><Icon name="arrow-up" /></button>
                     </form>
                     <form action={movePage.bind(null, p.id, 1)}>
-                      <button aria-label="Move down" title="Move down" disabled={i === others.length - 1} className={iconButton}><Icon name="arrow-down" /></button>
+                      <button aria-label="Move down" title="Move down" disabled={i === sibs.length - 1} className={iconButton}><Icon name="arrow-down" /></button>
                     </form>
                   </>
                 )}
@@ -133,5 +136,38 @@ export function PageSettingsForm({ page }: { page: SitePage }) {
         </form>
       )}
     </>
+  );
+}
+
+// Top-level page or sub page. Only top-level pages can be parents, and a page that has sub pages can't become one.
+export function PagePlacementForm({ page, parents, hasSubPages }: { page: SitePage; parents: SitePage[]; hasSubPages: boolean }) {
+  const [state, action, pending] = useActionState(savePagePlacement.bind(null, page.id), null as FormState);
+  const [placement, setPlacement] = useState<"top" | "sub">(page.parent_id ? "sub" : "top");
+  const canBeSub = !hasSubPages && parents.length > 0;
+  return (
+    <form action={action} className="space-y-3">
+      <label className={tile}>
+        <input type="radio" name="placement" value="top" checked={placement === "top"} onChange={() => setPlacement("top")} className="accent-gray-900" />
+        Its own item in the main menu
+      </label>
+      <label className={`${tile} ${canBeSub ? "" : "pointer-events-none opacity-50"}`}>
+        <input type="radio" name="placement" value="sub" checked={placement === "sub"} disabled={!canBeSub} onChange={() => setPlacement("sub")} className="accent-gray-900" />
+        A sub page: in a dropdown under another page
+      </label>
+      {placement === "sub" && canBeSub && (
+        <label className="block space-y-1 pl-1">
+          <span className={label}>Under which page?</span>
+          <select name="parent_id" defaultValue={page.parent_id ?? parents[0]?.id} className={input}>
+            {parents.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
+          </select>
+        </label>
+      )}
+      {!canBeSub && (
+        <p className="text-xs text-gray-500">{hasSubPages ? "This page has sub pages of its own, so it can't be a sub page itself." : "Add another page first to put this one under it."}</p>
+      )}
+      {state?.error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>}
+      {state?.ok && <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">{state.ok}</p>}
+      <button disabled={pending} className={button}>{pending ? "Saving…" : "Save"}</button>
+    </form>
   );
 }

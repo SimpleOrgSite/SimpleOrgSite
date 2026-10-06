@@ -31,10 +31,13 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/sit
   const hasFooter =
     (site.footer_show_logo && !!logo) || (site.footer_show_name && !!site.site_name) || site.footer_show_nav || site.footer_show_copyright || showEmail;
   // The menu is the site's pages: Home first (not everyone knows the logo is a link), then those marked "show in menu".
+  // A sub page isn't its own item; it sits in the dropdown under its parent, and only if that parent is in the menu too.
   const pages = await getPages(site.id);
-  const nav: NavItem[] = pages
-    .filter((p) => p.is_home || p.show_in_menu)
-    .map((p) => ({ href: p.is_home ? "/" : `/${p.slug}`, label: p.title, children: [] }));
+  const href = (p: (typeof pages)[number]) => (p.is_home ? "/" : `/${p.slug}`);
+  const inMenu = pages.filter((p) => p.is_home || p.show_in_menu);
+  const nav: NavItem[] = inMenu
+    .filter((p) => !p.parent_id || !pages.some((x) => x.id === p.parent_id))
+    .map((p) => ({ href: href(p), label: p.title, children: inMenu.filter((c) => c.parent_id === p.id).map((c) => ({ href: href(c), label: c.title })) }));
   if (!nav.some((n) => n.href === "/")) nav.unshift({ href: "/", label: "Home", children: [] });
 
   const announcements = await getAnnouncements(site.id);

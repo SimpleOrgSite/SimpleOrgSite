@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { allTags } from "@/lib/news";
+import { allTags, safeBack } from "@/lib/news";
 import { createClient } from "@/lib/supabase/server";
 import { NewsForm } from "../news-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewStory() {
+export default async function NewStory({ searchParams }: PageProps<"/dashboard/news/new">) {
+  const back = safeBack((await searchParams).back as string | undefined);
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
   if (!auth.user) redirect("/login");
@@ -17,10 +18,10 @@ export default async function NewStory() {
   return (
     <div className="flex-1 bg-gray-50">
       <main className="mx-auto max-w-2xl space-y-6 px-6 py-10">
-        <Link href="/dashboard?tab=news" className="text-sm text-gray-500 transition hover:text-gray-900">← Back</Link>
+        <Link href={back} className="text-sm text-gray-500 transition hover:text-gray-900">← Back</Link>
         <h1 className="text-2xl font-semibold">Add a story</h1>
         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5">
-          <NewsForm item={null} tagSuggestions={allTags(items ?? [])} today={new Date().toISOString().slice(0, 10)} />
+          <NewsForm back={back} item={null} tagSuggestions={allTags(items ?? [])} today={new Date().toISOString().slice(0, 10)} />
         </div>
       </main>
     </div>

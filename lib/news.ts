@@ -71,3 +71,8 @@ export const allTags = (items: Pick<NewsItem, "tags">[]) => {
   for (const i of items) for (const t of i.tags) if (!byKey.has(t.toLowerCase())) byKey.set(t.toLowerCase(), t);
   return [...byKey.values()].sort((a, b) => a.localeCompare(b));
 };
+
+// Story screens return to wherever they were opened from (a news block's editor). Only those places are allowed, so a
+// "back" value in a link can't send someone elsewhere.
+export const DEFAULT_BACK = "/dashboard?tab=pages";
+export const safeBack = (raw: string | undefined | null) => (raw && /^\/dashboard\/blocks\/[0-9a-f-]{36}$/i.test(raw) ? raw : DEFAULT_BACK);

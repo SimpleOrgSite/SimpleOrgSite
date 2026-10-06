@@ -8,7 +8,7 @@ import { moveNewsItem, toggleNewsVisible } from "../actions";
 
 const iconButton = "flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:pointer-events-none disabled:opacity-30";
 
-export function NewsList({ items }: { items: NewsItem[] }) {
+export function NewsList({ items, back }: { items: NewsItem[]; back: string }) {
   const [query, setQuery] = useState("");
   const [tag, setTag] = useState<string | null>(null);
   const tags = allTags(items);
@@ -52,7 +52,7 @@ export function NewsList({ items }: { items: NewsItem[] }) {
             const index = items.indexOf(item);
             return (
               <li key={item.id} className="flex items-center gap-3 px-4 py-3">
-                <Link href={`/dashboard/news/${item.id}`} className="min-w-0 flex-1 space-y-1">
+                <Link href={`/dashboard/news/${item.id}?back=${encodeURIComponent(back)}`} className="min-w-0 flex-1 space-y-1">
                   <span className={`block truncate font-medium ${item.visible ? "" : "text-gray-400"}`}>{item.name}</span>
                   {item.published_on && <span className="block text-xs text-gray-500">{formatNewsDate(item.published_on)}</span>}
                   {item.tags.length > 0 && (

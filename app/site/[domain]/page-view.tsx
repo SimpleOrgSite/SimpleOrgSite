@@ -11,16 +11,13 @@ export async function PageView({ site, page }: { site: Site; page: SitePage | un
   // The announcement bar lives above the header (see the layout), so it isn't part of the stack.
   const blocks = all.filter((b) => b.type !== "announcement");
 
+  // A page with no blocks yet shows its name, so visitors never land on a blank screen.
   if (blocks.length === 0) {
-    // An empty home page keeps showing the simple message; an empty page shows its title so it isn't a blank screen.
-    return !page || page.is_home ? (
-      <div className="flex min-h-[60vh] items-center justify-center p-8">
-        <h1 className="text-center text-4xl font-semibold">{site.message}</h1>
-      </div>
-    ) : (
-      <div className="mx-auto max-w-3xl space-y-3 px-6 py-24 text-center">
-        <h1 className="text-4xl font-semibold">{page.title}</h1>
-        <p className="text-gray-500">Nothing here yet.</p>
+    const isHome = !page || page.is_home;
+    return (
+      <div className="mx-auto flex min-h-[50vh] max-w-3xl flex-col items-center justify-center gap-3 px-6 py-24 text-center">
+        <h1 className="text-4xl font-semibold">{isHome ? site.site_name || page?.title || "Welcome" : page.title}</h1>
+        <p className="text-gray-500">{isHome ? "Coming soon." : "Nothing here yet."}</p>
       </div>
     );
   }

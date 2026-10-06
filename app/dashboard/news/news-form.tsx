@@ -8,12 +8,13 @@ import { RichEditor } from "../rich-editor";
 import { button, dangerLink, input, label, tile } from "../ui";
 import { TagInput } from "./tag-input";
 
-export function NewsForm({ item, tagSuggestions, today }: { item: NewsItem | null; tagSuggestions: string[]; today: string }) {
+export function NewsForm({ item, tagSuggestions, today, back }: { item: NewsItem | null; tagSuggestions: string[]; today: string; back: string }) {
   const [state, action, pending] = useActionState(saveNewsItem.bind(null, item?.id ?? null), null as FormState);
   const [story, setStory] = useState(item?.story ?? "");
   return (
     <>
       <form action={action} className="space-y-5">
+        <input type="hidden" name="back" value={back} />
         <label className="block space-y-1">
           <span className={label}>Name</span>
           <input name="name" defaultValue={item?.name} required placeholder="Headline" className={input} />
@@ -42,12 +43,12 @@ export function NewsForm({ item, tagSuggestions, today }: { item: NewsItem | nul
         {state?.error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>}
         <div className="flex items-center gap-4">
           <button disabled={pending} className={button}>{pending ? "Saving…" : "Save"}</button>
-          <Link href="/dashboard?tab=news" className={dangerLink}>Cancel</Link>
+          <Link href={back} className={dangerLink}>Cancel</Link>
         </div>
       </form>
       {item && (
         <form
-          action={deleteNewsItem.bind(null, item.id)}
+          action={deleteNewsItem.bind(null, item.id, back)}
           onSubmit={(e) => {
             if (!confirm("Delete this story?")) e.preventDefault();
           }}

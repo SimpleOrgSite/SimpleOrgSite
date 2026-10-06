@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { button, dangerLink, file, input, label as labelText, tile } from "./ui";
 import { logoHeight } from "@/lib/logo";
 import type { Site } from "@/lib/site";
-import { addDomain, removeDomain, removeLogo, saveFooter, saveHeaderStyle, saveLogoSize, saveMessage, saveSiteName, uploadLogo, verifySite, type FormState } from "./actions";
+import { addDomain, removeDomain, removeLogo, saveFooter, saveHeaderStyle, saveLogoSize, saveSiteName, uploadLogo, verifySite, type FormState } from "./actions";
 
 function Feedback({ state }: { state: FormState }) {
   if (state?.error) return <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>;
@@ -20,17 +20,6 @@ export function AddDomainForm() {
       <input name="domain" placeholder="example.com or www.example.com" required className={input} />
       <Feedback state={state} />
       <button disabled={pending} className={button}>{pending ? "Adding…" : "Add domain"}</button>
-    </form>
-  );
-}
-
-export function MessageForm({ message }: { message: string }) {
-  const [state, action, pending] = useActionState(saveMessage, null);
-  return (
-    <form action={action} className="space-y-4">
-      <input name="message" defaultValue={message} required className={input} />
-      <Feedback state={state} />
-      <button disabled={pending} className={button}>{pending ? "Saving…" : "Save message"}</button>
     </form>
   );
 }

@@ -3,7 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { MAX_ACTIONS, iconName, collectImagePaths, collectFilePaths, blockType, normalizeBlockLink, normalizeEmbed, videoEmbedUrl, type ActionItem, type BlockConfig, type BlockField } from "@/lib/blocks";
-import { normalizeDate, normalizeLink, normalizeTags } from "@/lib/news";
+import { normalizeDate, safeBack, normalizeLink, normalizeTags } from "@/lib/news";
+import { orderPages } from "@/lib/pages";
 import { sanitizeRichText } from "@/lib/richtext";
 import { getLibraryLogos } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
@@ -40,17 +41,6 @@ export async function removeDomain() {
   if (site) await removeDomainFromVercel(site.domain);
   await supabase.from("sites").delete().eq("owner_id", user.id);
   revalidatePath("/dashboard");
-}
-
-export async function saveMessage(_: FormState, formData: FormData): Promise<FormState> {
-  const { supabase, user } = await currentUser();
-  const message = String(formData.get("message")).trim();
-  if (!message) return { error: "Message can't be empty." };
-  const { error } = await supabase.from("sites").update({ message }).eq("owner_id", user.id);
-  if (error) return { error: error.message };
-  // React resets the form after the action; revalidating makes it reset to the new saved value, not the old one.
-  revalidatePath("/dashboard");
-  return { ok: "Saved." };
 }
 
 export async function verifySite(): Promise<FormState> {
@@ -190,16 +180,16 @@ export async function saveNewsItem(id: string | null, _: FormState, formData: Fo
     if (error) return { error: error.message };
   }
   revalidatePath("/dashboard");
-  redirect("/dashboard?tab=news");
+  redirect(safeBack(String(formData.get("back") ?? "")));
 }
 
-export async function deleteNewsItem(id: string) {
+export async function deleteNewsItem(id: string, back: string) {
   const { supabase, user } = await currentUser();
   const { data: site } = await supabase.from("sites").select("id").eq("owner_id", user.id).maybeSingle();
   if (!site) return;
   await supabase.from("news_items").delete().eq("id", id).eq("site_id", site.id);
   revalidatePath("/dashboard");
-  redirect("/dashboard?tab=news");
+  redirect(safeBack(back));
 }
 
 export async function toggleNewsVisible(id: string, visible: boolean) {
@@ -488,15 +478,40 @@ export async function togglePageMenu(id: string, show: boolean) {
 export async function movePage(id: string, by: -1 | 1) {
   const { supabase, site } = await currentSite();
   if (!site) return;
-  const { data: rows } = await supabase.from("pages").select("id, is_home").eq("site_id", site.id).order("sort_order").order("created_at");
-  // Home always stays first, so only the others trade places.
-  const ids = (rows ?? []).filter((r) => !r.is_home).map((r) => r.id);
-  const i = ids.indexOf(id);
+  const { data: rows } = await supabase.from("pages").select("*").eq("site_id", site.id).order("sort_order").order("created_at");
+  const pages = (rows ?? []).map((r) => ({ id: r.id as string, is_home: r.is_home as boolean, sort_order: r.sort_order as number, parent_id: (r.parent_id ?? null) as string | null }));
+  const me = pages.find((p) => p.id === id);
+  if (!me || me.is_home) return;
+  // A page only trades places with its siblings: other top-level pages, or the other sub pages of the same parent.
+  const sibs = orderPages(pages).filter((p) => !p.is_home && (me.parent_id ? p.parent_id === me.parent_id : !p.parent_id));
+  const i = sibs.findIndex((p) => p.id === id);
   const j = i + by;
-  if (i === -1 || j < 0 || j >= ids.length) return;
-  [ids[i], ids[j]] = [ids[j], ids[i]];
-  const home = (rows ?? []).find((r) => r.is_home);
-  const ordered = [...(home ? [home.id] : []), ...ids];
-  await Promise.all(ordered.map((rowId, order) => supabase.from("pages").update({ sort_order: order }).eq("id", rowId).eq("site_id", site.id)));
+  if (i === -1 || j < 0 || j >= sibs.length) return;
+  [sibs[i], sibs[j]] = [sibs[j], sibs[i]];
+  // Rebuild the whole order (home, then each top-level page with its sub pages) and renumber it.
+  const tops = me.parent_id ? orderPages(pages).filter((p) => !p.is_home && !p.parent_id) : sibs;
+  const kids = (parent: string) => (me.parent_id === parent ? sibs : orderPages(pages).filter((p) => p.parent_id === parent));
+  const ordered = [...pages.filter((p) => p.is_home), ...tops.flatMap((t) => [t, ...kids(t.id)])];
+  await Promise.all(ordered.map((p, order) => supabase.from("pages").update({ sort_order: order }).eq("id", p.id).eq("site_id", site.id)));
   revalidatePath("/dashboard");
+}
+
+// Make a page its own item in the main menu (parent "") or a sub page in the dropdown under another page.
+export async function savePagePlacement(id: string, _: FormState, formData: FormData): Promise<FormState> {
+  const { supabase, site } = await currentSite();
+  if (!site) return { error: "No domain set." };
+  const { data: rows } = await supabase.from("pages").select("*").eq("site_id", site.id);
+  const pages = rows ?? [];
+  const me = pages.find((p) => p.id === id);
+  if (!me || me.is_home) return { error: "That page can't be moved." };
+  const parentId = formData.get("placement") === "sub" ? String(formData.get("parent_id") ?? "") : "";
+  if (parentId) {
+    const parent = pages.find((p) => p.id === parentId);
+    if (!parent || parent.is_home || parent.parent_id || parent.id === id) return { error: "Choose a page that is itself in the main menu." };
+    if (pages.some((p) => p.parent_id === id)) return { error: "This page has sub pages of its own, so it can't become one. Move those out first." };
+  }
+  const { error } = await supabase.from("pages").update({ parent_id: parentId || null }).eq("id", id).eq("site_id", site.id);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard");
+  return { ok: "Saved." };
 }
