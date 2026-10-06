@@ -1,14 +1,10 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { Icon } from "@/components/icons";
-import { NEWS_LAYOUTS, type NewsLayout } from "@/lib/news";
-import { RichEditor } from "./rich-editor";
 import { button, dangerLink, file, input, label as labelText, tile } from "./ui";
 import { logoHeight } from "@/lib/logo";
-import { DIRECTOR_LAYOUTS, PHOTO_SHAPES, SHAPE_CLASSES, type DirectorLayout, type PhotoShape } from "@/lib/directors";
-import type { AboutSection, Site } from "@/lib/site";
-import { addDomain, removeDomain, removeLogo, saveAbout, saveDirectorsSettings, saveFooter, saveHeaderStyle, saveNewsSettings, saveLogoSize, saveMessage, saveSiteName, uploadLogo, verifySite, type FormState } from "./actions";
+import type { Site } from "@/lib/site";
+import { addDomain, removeDomain, removeLogo, saveFooter, saveHeaderStyle, saveLogoSize, saveMessage, saveSiteName, uploadLogo, verifySite, type FormState } from "./actions";
 
 function Feedback({ state }: { state: FormState }) {
   if (state?.error) return <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{state.error}</p>;
@@ -115,121 +111,6 @@ export function LogoForm({ logoUrl, logoSize }: { logoUrl: string | null; logoSi
         </>
       )}
     </div>
-  );
-}
-
-type EditableSection = { id: string; title: string; body: string };
-
-export function AboutForm({ enabled, label, sections: initial }: { enabled: boolean; label: string; sections: AboutSection[] }) {
-  const [state, action, pending] = useActionState(saveAbout, null);
-  const [sections, setSections] = useState<EditableSection[]>(initial.map(({ id, title, body }) => ({ id, title, body })));
-
-  const update = (id: string, patch: Partial<EditableSection>) => setSections((all) => all.map((s) => (s.id === id ? { ...s, ...patch } : s)));
-  const move = (i: number, by: number) =>
-    setSections((all) => {
-      const next = [...all];
-      [next[i], next[i + by]] = [next[i + by], next[i]];
-      return next;
-    });
-  const iconButton = "flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:opacity-30 disabled:hover:bg-transparent";
-
-  return (
-    <form action={action} className="space-y-4">
-      <label className={tile}>
-        <input type="checkbox" name="about_enabled" defaultChecked={enabled} className="h-4 w-4 accent-gray-900" />
-        Show this page in my site&apos;s menu
-      </label>
-      <label className="block space-y-1">
-        <span className={labelText}>Menu and page title</span>
-        <input name="about_label" defaultValue={label} placeholder="About Us" className={input} />
-      </label>
-
-      <div className="space-y-4 border-t border-gray-100 pt-5">
-        <p className="text-sm text-gray-500">Each section appears on your page and as a choice in the menu dropdown.</p>
-        {sections.map((s, i) => (
-          <div key={s.id} className="space-y-3 rounded-2xl border border-gray-200 bg-gray-50/50 p-4">
-            <input type="hidden" name="section_id" value={s.id} />
-            <input type="hidden" name="section_body" value={s.body} />
-            <div className="flex items-center gap-2">
-              <input
-                name="section_title"
-                value={s.title}
-                onChange={(e) => update(s.id, { title: e.target.value })}
-                placeholder="Section name, e.g. Our mission"
-                className={`${input} font-medium`}
-              />
-              <button type="button" aria-label="Move up" title="Move up" disabled={i === 0} onClick={() => move(i, -1)} className={iconButton}><Icon name="arrow-up" /></button>
-              <button type="button" aria-label="Move down" title="Move down" disabled={i === sections.length - 1} onClick={() => move(i, 1)} className={iconButton}><Icon name="arrow-down" /></button>
-              <button
-                type="button"
-                aria-label="Delete section"
-                title="Delete section"
-                onClick={() => setSections((all) => all.filter((x) => x.id !== s.id))}
-                className={`${iconButton} hover:!bg-red-50 hover:!text-red-600`}
-              >
-                <Icon name="trash" />
-              </button>
-            </div>
-            <RichEditor initial={s.body} onChange={(body) => update(s.id, { body })} />
-          </div>
-        ))}
-        <button
-          type="button"
-          onClick={() => setSections((all) => [...all, { id: crypto.randomUUID(), title: "", body: "" }])}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-gray-300 py-3 text-sm font-medium text-gray-600 transition hover:border-gray-400 hover:bg-gray-50"
-        >
-          <Icon name="plus" /> Add section
-        </button>
-      </div>
-
-      <Feedback state={state} />
-      <button disabled={pending} className={button}>{pending ? "Saving…" : "Save"}</button>
-    </form>
-  );
-}
-
-export function DirectorsSettingsForm({
-  enabled, label, layout, shape,
-}: { enabled: boolean; label: string; layout: DirectorLayout; shape: PhotoShape }) {
-  const [state, action, pending] = useActionState(saveDirectorsSettings, null);
-  const [layoutChoice, setLayoutChoice] = useState(layout);
-  return (
-    <form action={action} className="space-y-4">
-      <label className={tile}>
-        <input type="checkbox" name="directors_enabled" defaultChecked={enabled} className="h-4 w-4 accent-gray-900" />
-        Show this section on my About page
-      </label>
-      <label className="block space-y-1">
-        <span className={labelText}>Section title (also its menu entry)</span>
-        <input name="directors_label" defaultValue={label} placeholder="Directors" className={input} />
-      </label>
-      <fieldset className="space-y-2">
-        <legend className={`${labelText} mb-2`}>How to show people</legend>
-        {DIRECTOR_LAYOUTS.map((l) => (
-          <label key={l.key} className={tile}>
-            <input type="radio" name="directors_layout" className="accent-gray-900" value={l.key} checked={layoutChoice === l.key} onChange={() => setLayoutChoice(l.key)} />
-            {l.label}
-          </label>
-        ))}
-      </fieldset>
-      {/* Hidden, not unmounted, so the chosen shape is still submitted with the "names only" layout. */}
-      <fieldset className={layoutChoice === "list" ? "hidden" : "space-y-2"}>
-        <legend className={`${labelText} mb-2`}>Photo shape</legend>
-        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-          {PHOTO_SHAPES.map((s) => (
-            <label key={s.key} className="flex cursor-pointer flex-col items-center gap-2 rounded-xl border border-gray-200 px-2 py-3 text-sm transition hover:bg-gray-50 has-[:checked]:border-gray-900 has-[:checked]:bg-gray-50">
-              <span className={`w-10 bg-gray-300 ${SHAPE_CLASSES[s.key]}`} />
-              <span className="flex items-center gap-1.5">
-                <input type="radio" name="directors_photo_shape" value={s.key} defaultChecked={shape === s.key} className="accent-gray-900" />
-                {s.label}
-              </span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
-      <Feedback state={state} />
-      <button disabled={pending} className={button}>{pending ? "Saving…" : "Save"}</button>
-    </form>
   );
 }
 
@@ -386,32 +267,3 @@ export function FooterForm({
   );
 }
 
-export function NewsSettingsForm({ enabled, label, layout }: { enabled: boolean; label: string; layout: NewsLayout }) {
-  const [state, action, pending] = useActionState(saveNewsSettings, null);
-  return (
-    <form action={action} className="space-y-4">
-      <label className={tile}>
-        <input type="checkbox" name="news_enabled" defaultChecked={enabled} className="h-4 w-4 accent-gray-900" />
-        Show this page in my site&apos;s menu
-      </label>
-      <label className="block space-y-1">
-        <span className={labelText}>Menu and page title</span>
-        <input name="news_label" defaultValue={label} placeholder="News" className={input} />
-      </label>
-      <fieldset className="space-y-2">
-        <legend className={`${labelText} mb-2`}>How to show stories</legend>
-        {NEWS_LAYOUTS.map((l) => (
-          <label key={l.key} className={`${tile} items-start`}>
-            <input type="radio" name="news_layout" value={l.key} defaultChecked={layout === l.key} className="mt-1 accent-gray-900" />
-            <span>
-              <span className="block font-medium">{l.label}</span>
-              <span className="block text-sm text-gray-500">{l.hint}</span>
-            </span>
-          </label>
-        ))}
-      </fieldset>
-      <Feedback state={state} />
-      <button disabled={pending} className={button}>{pending ? "Saving…" : "Save"}</button>
-    </form>
-  );
-}

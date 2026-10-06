@@ -3,9 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { MAX_ACTIONS, iconName, collectImagePaths, collectFilePaths, blockType, normalizeBlockLink, normalizeEmbed, videoEmbedUrl, type ActionItem, type BlockConfig, type BlockField } from "@/lib/blocks";
-import { NEWS_LAYOUTS, normalizeDate, normalizeLink, normalizeTags } from "@/lib/news";
-import { hasText, sanitizeRichText } from "@/lib/richtext";
-import { DIRECTOR_LAYOUTS, PHOTO_SHAPES } from "@/lib/directors";
+import { normalizeDate, normalizeLink, normalizeTags } from "@/lib/news";
+import { sanitizeRichText } from "@/lib/richtext";
 import { getLibraryLogos } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 import { addDomainToVercel, checkDomain, isValidDomain, normalizeDomain, removeDomainFromVercel } from "@/lib/domain";
@@ -115,38 +114,6 @@ export async function removeLogo() {
   revalidatePath("/dashboard");
 }
 
-export async function saveAbout(_: FormState, formData: FormData): Promise<FormState> {
-  const { supabase, user } = await currentUser();
-  const { data: site } = await supabase.from("sites").select("id").eq("owner_id", user.id).maybeSingle();
-  if (!site) return { error: "No domain set." };
-
-  const about_enabled = formData.get("about_enabled") === "on";
-  const about_label = String(formData.get("about_label")).trim() || "About Us";
-  const { error } = await supabase.from("sites").update({ about_enabled, about_label }).eq("id", site.id);
-  if (error) return { error: error.message };
-
-  // The three fields are parallel lists in on-screen order; position becomes sort_order.
-  const ids = formData.getAll("section_id").map(String);
-  const titles = formData.getAll("section_title").map(String);
-  const bodies = formData.getAll("section_body").map(String);
-  const rows = ids
-    .map((id, i) => ({ id, title: titles[i].trim(), body: sanitizeRichText(bodies[i]) }))
-    .filter((r) => /^[0-9a-f-]{36}$/i.test(r.id) && (r.title || hasText(r.body)))
-    .map((r, i) => ({ ...r, site_id: site.id, sort_order: i }));
-
-  if (rows.length) {
-    const { error } = await supabase.from("about_sections").upsert(rows);
-    if (error) return { error: error.message };
-  }
-  // Anything the owner removed from the form is deleted.
-  const keep = rows.map((r) => r.id);
-  const del = supabase.from("about_sections").delete().eq("site_id", site.id);
-  await (keep.length ? del.not("id", "in", `(${keep.join(",")})`) : del);
-
-  revalidatePath("/dashboard");
-  return { ok: "Saved." };
-}
-
 export async function saveLogoSize(_: FormState, formData: FormData): Promise<FormState> {
   const { supabase, user } = await currentUser();
   const logo_size = Math.round(Number(formData.get("logo_size")));
@@ -155,85 +122,6 @@ export async function saveLogoSize(_: FormState, formData: FormData): Promise<Fo
   if (error) return { error: error.message };
   revalidatePath("/dashboard");
   return { ok: "Saved." };
-}
-
-export async function saveDirectorsSettings(_: FormState, formData: FormData): Promise<FormState> {
-  const { supabase, user } = await currentUser();
-  const layout = String(formData.get("directors_layout"));
-  const shape = String(formData.get("directors_photo_shape"));
-  if (!DIRECTOR_LAYOUTS.some((l) => l.key === layout) || !PHOTO_SHAPES.some((s) => s.key === shape)) {
-    return { error: "Pick a layout and a photo shape." };
-  }
-  const { error } = await supabase
-    .from("sites")
-    .update({
-      directors_layout: layout,
-      directors_photo_shape: shape,
-      directors_enabled: formData.get("directors_enabled") === "on",
-      directors_label: String(formData.get("directors_label")).trim() || "Directors",
-    })
-    .eq("owner_id", user.id);
-  if (error) return { error: error.message };
-  revalidatePath("/dashboard");
-  return { ok: "Saved." };
-}
-
-export async function saveDirector(id: string | null, _: FormState, formData: FormData): Promise<FormState> {
-  const { supabase, user } = await currentUser();
-  const { data: site } = await supabase.from("sites").select("id").eq("owner_id", user.id).maybeSingle();
-  if (!site) return { error: "No domain set." };
-
-  const name = String(formData.get("name")).trim();
-  if (!name) return { error: "Name is required." };
-
-  let photo_path: string | null = null;
-  if (id) {
-    const { data: existing } = await supabase.from("directors").select("photo_path").eq("id", id).eq("site_id", site.id).maybeSingle();
-    if (!existing) return { error: "Not found." };
-    photo_path = existing.photo_path;
-  }
-
-  const oldPhoto = photo_path;
-  const file = formData.get("photo");
-  if (file instanceof File && file.size > 0) {
-    const ext = IMAGE_TYPES[file.type];
-    if (!ext) return { error: "Photo must be a PNG, JPG, WebP or SVG." };
-    if (file.size > 2 * 1024 * 1024) return { error: "Photo must be under 2 MB." };
-    const path = `${user.id}/director-${Date.now()}.${ext}`;
-    const { error } = await supabase.storage.from("logos").upload(path, file, { contentType: file.type });
-    if (error) return { error: error.message };
-    photo_path = path;
-  } else if (formData.get("remove_photo") === "on") {
-    photo_path = null;
-  }
-
-  const row = {
-    name,
-    title: String(formData.get("title") ?? "").trim(),
-    affiliation: String(formData.get("affiliation") ?? "").trim(),
-    bio: String(formData.get("bio") ?? "").trim(),
-    email: String(formData.get("email") ?? "").trim(),
-    photo_path,
-  };
-  const { error } = id
-    ? await supabase.from("directors").update(row).eq("id", id).eq("site_id", site.id)
-    : await supabase.from("directors").insert({ ...row, site_id: site.id });
-  if (error) return { error: error.message };
-
-  if (oldPhoto && oldPhoto !== photo_path) await supabase.storage.from("logos").remove([oldPhoto]);
-  revalidatePath("/dashboard");
-  redirect("/dashboard?tab=about");
-}
-
-export async function deleteDirector(id: string) {
-  const { supabase, user } = await currentUser();
-  const { data: site } = await supabase.from("sites").select("id").eq("owner_id", user.id).maybeSingle();
-  if (!site) return;
-  const { data: d } = await supabase.from("directors").select("photo_path").eq("id", id).eq("site_id", site.id).maybeSingle();
-  if (d?.photo_path) await supabase.storage.from("logos").remove([d.photo_path]);
-  await supabase.from("directors").delete().eq("id", id).eq("site_id", site.id);
-  revalidatePath("/dashboard");
-  redirect("/dashboard?tab=about");
 }
 
 export async function saveHeaderStyle(_: FormState, formData: FormData): Promise<FormState> {
@@ -266,21 +154,6 @@ export async function saveFooter(_: FormState, formData: FormData): Promise<Form
       footer_show_nav: on("footer_show_nav"),
       footer_show_email: on("footer_show_email"),
       footer_email,
-    })
-    .eq("owner_id", user.id);
-  if (error) return { error: error.message };
-  revalidatePath("/dashboard");
-  return { ok: "Saved." };
-}
-
-export async function saveNewsSettings(_: FormState, formData: FormData): Promise<FormState> {
-  const { supabase, user } = await currentUser();
-  const { error } = await supabase
-    .from("sites")
-    .update({
-      news_enabled: formData.get("news_enabled") === "on",
-      news_label: String(formData.get("news_label")).trim() || "News",
-      news_layout: NEWS_LAYOUTS.find((l) => l.key === formData.get("news_layout"))?.key ?? "full",
     })
     .eq("owner_id", user.id);
   if (error) return { error: error.message };
@@ -359,23 +232,25 @@ async function currentSite() {
   return { supabase, user, site };
 }
 
-export async function addBlock(type: string) {
+export async function addBlock(pageId: string, type: string) {
   const def = blockType(type);
   const { supabase, site } = await currentSite();
   if (!def || !site) return;
+  const { data: page } = await supabase.from("pages").select("id").eq("id", pageId).eq("site_id", site.id).maybeSingle();
+  if (!page) return;
   // New blocks go to the bottom of the page.
-  const { data: last } = await supabase.from("home_blocks").select("sort_order").eq("site_id", site.id).order("sort_order", { ascending: false }).limit(1).maybeSingle();
-  const { data, error } = await supabase.from("home_blocks").insert({ site_id: site.id, type: def.type, config: def.defaults, sort_order: (last?.sort_order ?? -1) + 1 }).select("id").single();
+  const { data: last } = await supabase.from("page_blocks").select("sort_order").eq("page_id", pageId).order("sort_order", { ascending: false }).limit(1).maybeSingle();
+  const { data, error } = await supabase.from("page_blocks").insert({ site_id: site.id, page_id: pageId, type: def.type, config: def.defaults, sort_order: (last?.sort_order ?? -1) + 1 }).select("id").single();
   revalidatePath("/dashboard");
-  // Surface failures (e.g. the table hasn't been created yet) instead of silently reloading the same tab.
-  if (error || !data) redirect(`/dashboard?tab=home&error=${encodeURIComponent(error?.message ?? "Couldn't add the block.")}`);
+  // Surface failures (e.g. a table that hasn't been created yet) instead of silently reloading the same tab.
+  if (error || !data) redirect(`/dashboard?tab=p-${pageId}&error=${encodeURIComponent(error?.message ?? "Couldn't add the block.")}`);
   redirect(`/dashboard/blocks/${data.id}`);
 }
 
 export async function saveBlock(id: string, _: FormState, formData: FormData): Promise<FormState> {
   const { supabase, user, site } = await currentSite();
   if (!site) return { error: "No domain set." };
-  const { data: block } = await supabase.from("home_blocks").select("type, config").eq("id", id).eq("site_id", site.id).maybeSingle();
+  const { data: block } = await supabase.from("page_blocks").select("type, config").eq("id", id).eq("site_id", site.id).maybeSingle();
   const def = block && blockType(block.type);
   if (!block || !def) return { error: "That block no longer exists." };
 
@@ -487,7 +362,7 @@ export async function saveBlock(id: string, _: FormState, formData: FormData): P
     }
   }
 
-  const { error } = await supabase.from("home_blocks").update({ config }).eq("id", id).eq("site_id", site.id);
+  const { error } = await supabase.from("page_blocks").update({ config }).eq("id", id).eq("site_id", site.id);
   if (error) return fail(error.message);
   const kept = new Set(collectImagePaths(config));
   const unused = [...owned].filter((p) => !kept.has(p));
@@ -499,35 +374,121 @@ export async function saveBlock(id: string, _: FormState, formData: FormData): P
   return { ok: "Saved." };
 }
 
+// Deletes the uploaded images and documents a set of block configs point at.
+async function removeBlockFiles(supabase: Awaited<ReturnType<typeof createClient>>, configs: BlockConfig[]) {
+  const images = configs.flatMap(collectImagePaths);
+  if (images.length) await supabase.storage.from("logos").remove(images);
+  const files = configs.flatMap(collectFilePaths);
+  if (files.length) await supabase.storage.from("block-files").remove(files);
+}
+
 export async function deleteBlock(id: string) {
   const { supabase, site } = await currentSite();
   if (!site) return;
-  const { data: block } = await supabase.from("home_blocks").select("config").eq("id", id).eq("site_id", site.id).maybeSingle();
-  const images = block ? collectImagePaths(block.config as BlockConfig) : [];
-  if (images.length) await supabase.storage.from("logos").remove(images);
-  const files = block ? collectFilePaths(block.config as BlockConfig) : [];
-  if (files.length) await supabase.storage.from("block-files").remove(files);
-  await supabase.from("home_blocks").delete().eq("id", id).eq("site_id", site.id);
+  const { data: block } = await supabase.from("page_blocks").select("page_id, config").eq("id", id).eq("site_id", site.id).maybeSingle();
+  if (block) await removeBlockFiles(supabase, [block.config as BlockConfig]);
+  await supabase.from("page_blocks").delete().eq("id", id).eq("site_id", site.id);
   revalidatePath("/dashboard");
-  redirect("/dashboard?tab=home");
+  redirect(`/dashboard?tab=${block ? `p-${block.page_id}` : "site"}`);
 }
 
 export async function toggleBlock(id: string, enabled: boolean) {
   const { supabase, site } = await currentSite();
   if (!site) return;
-  await supabase.from("home_blocks").update({ enabled }).eq("id", id).eq("site_id", site.id);
+  await supabase.from("page_blocks").update({ enabled }).eq("id", id).eq("site_id", site.id);
   revalidatePath("/dashboard");
 }
 
 export async function moveBlock(id: string, by: -1 | 1) {
   const { supabase, site } = await currentSite();
   if (!site) return;
-  const { data: rows } = await supabase.from("home_blocks").select("id").eq("site_id", site.id).order("sort_order").order("created_at");
+  const { data: me } = await supabase.from("page_blocks").select("page_id").eq("id", id).eq("site_id", site.id).maybeSingle();
+  if (!me) return;
+  const { data: rows } = await supabase.from("page_blocks").select("id").eq("page_id", me.page_id).order("sort_order").order("created_at");
   const ids = (rows ?? []).map((r) => r.id);
   const i = ids.indexOf(id);
   const j = i + by;
   if (i === -1 || j < 0 || j >= ids.length) return;
   [ids[i], ids[j]] = [ids[j], ids[i]];
-  await Promise.all(ids.map((rowId, order) => supabase.from("home_blocks").update({ sort_order: order }).eq("id", rowId).eq("site_id", site.id)));
+  await Promise.all(ids.map((rowId, order) => supabase.from("page_blocks").update({ sort_order: order }).eq("id", rowId).eq("site_id", site.id)));
+  revalidatePath("/dashboard");
+}
+
+// ---- Pages -----------------------------------------------------------------------------------------------
+
+const slugify = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export async function addPage(_: FormState, formData: FormData): Promise<FormState> {
+  const { supabase, site } = await currentSite();
+  if (!site) return { error: "No domain set." };
+  const title = String(formData.get("title") ?? "").trim().slice(0, 60);
+  if (!title) return { error: "Give the page a name." };
+  const { data: existing } = await supabase.from("pages").select("slug, sort_order").eq("site_id", site.id);
+  const used = new Set((existing ?? []).map((p) => p.slug));
+  const base = slugify(title) || "page";
+  let slug = base;
+  for (let n = 2; used.has(slug); n++) slug = `${base}-${n}`;
+  const sort = Math.max(0, ...(existing ?? []).map((p) => p.sort_order)) + 1;
+  const { data, error } = await supabase.from("pages").insert({ site_id: site.id, slug, title, sort_order: sort }).select("id").single();
+  if (error || !data) return { error: error?.message ?? "Couldn't add the page." };
+  revalidatePath("/dashboard");
+  redirect(`/dashboard?tab=p-${data.id}`);
+}
+
+export async function savePage(id: string, _: FormState, formData: FormData): Promise<FormState> {
+  const { supabase, site } = await currentSite();
+  if (!site) return { error: "No domain set." };
+  const { data: page } = await supabase.from("pages").select("is_home").eq("id", id).eq("site_id", site.id).maybeSingle();
+  if (!page) return { error: "That page no longer exists." };
+  const title = String(formData.get("title") ?? "").trim().slice(0, 60);
+  if (!title) return { error: "Give the page a name." };
+  const row: { title: string; slug?: string; show_in_menu?: boolean } = { title };
+  if (!page.is_home) {
+    const slug = String(formData.get("slug") ?? "").trim().toLowerCase();
+    if (!SLUG.test(slug)) return { error: "The address can only use lowercase letters, numbers and dashes, like our-team." };
+    const { data: clash } = await supabase.from("pages").select("id").eq("site_id", site.id).eq("slug", slug).neq("id", id).maybeSingle();
+    if (clash) return { error: "Another page already uses that address." };
+    row.slug = slug;
+    row.show_in_menu = formData.get("show_in_menu") === "on";
+  }
+  const { error } = await supabase.from("pages").update(row).eq("id", id).eq("site_id", site.id);
+  if (error) return { error: error.message };
+  revalidatePath("/dashboard");
+  return { ok: "Saved." };
+}
+
+export async function deletePage(id: string) {
+  const { supabase, site } = await currentSite();
+  if (!site) return;
+  const { data: page } = await supabase.from("pages").select("is_home").eq("id", id).eq("site_id", site.id).maybeSingle();
+  if (!page || page.is_home) return;
+  const { data: blocks } = await supabase.from("page_blocks").select("config").eq("page_id", id);
+  await removeBlockFiles(supabase, (blocks ?? []).map((b) => b.config as BlockConfig));
+  await supabase.from("pages").delete().eq("id", id).eq("site_id", site.id); // its blocks go with it
+  revalidatePath("/dashboard");
+  redirect("/dashboard?tab=site");
+}
+
+export async function togglePageMenu(id: string, show: boolean) {
+  const { supabase, site } = await currentSite();
+  if (!site) return;
+  await supabase.from("pages").update({ show_in_menu: show }).eq("id", id).eq("site_id", site.id).eq("is_home", false);
+  revalidatePath("/dashboard");
+}
+
+export async function movePage(id: string, by: -1 | 1) {
+  const { supabase, site } = await currentSite();
+  if (!site) return;
+  const { data: rows } = await supabase.from("pages").select("id, is_home").eq("site_id", site.id).order("sort_order").order("created_at");
+  // Home always stays first, so only the others trade places.
+  const ids = (rows ?? []).filter((r) => !r.is_home).map((r) => r.id);
+  const i = ids.indexOf(id);
+  const j = i + by;
+  if (i === -1 || j < 0 || j >= ids.length) return;
+  [ids[i], ids[j]] = [ids[j], ids[i]];
+  const home = (rows ?? []).find((r) => r.is_home);
+  const ordered = [...(home ? [home.id] : []), ...ids];
+  await Promise.all(ordered.map((rowId, order) => supabase.from("pages").update({ sort_order: order }).eq("id", rowId).eq("site_id", site.id)));
   revalidatePath("/dashboard");
 }

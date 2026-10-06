@@ -1,4 +1,4 @@
-import { BLOCK_TYPES, blockType, type BlockConfig, type HomeBlock } from "@/lib/blocks";
+import { BLOCK_TYPES, blockType, type BlockConfig, type PageBlock } from "@/lib/blocks";
 import type { NewsItem } from "@/lib/news";
 
 // Sample content for the dashboard's "Preview" sheet, so every block can be shown without the owner filling anything in.
@@ -64,7 +64,7 @@ function withSampleLinks<T>(value: T): T {
   return value;
 }
 
-export function previewBlock(type: string, color: string): { block: HomeBlock; urls: Record<string, string> } | null {
+export function previewBlock(type: string, color: string): { block: PageBlock; urls: Record<string, string> } | null {
   const def = blockType(type);
   if (!def) return null;
   const config = withSampleLinks({ ...(def.defaults as BlockConfig), ...SAMPLES[type] });

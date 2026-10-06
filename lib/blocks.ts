@@ -1,4 +1,5 @@
 import { PHOTO_SHAPES } from "@/lib/directors";
+import { NEWS_LAYOUTS } from "@/lib/news";
 import { ICON_LIBRARY } from "@/components/icon-library";
 
 // Safe to import from client components (no server code).
@@ -7,7 +8,7 @@ import { ICON_LIBRARY } from "@/components/icon-library";
 
 export type ActionItem = { icon: string; label: string; link: string };
 export type BlockConfig = Record<string, unknown>;
-export type HomeBlock = { id: string; type: BlockType; enabled: boolean; config: BlockConfig };
+export type PageBlock = { id: string; type: BlockType; enabled: boolean; config: BlockConfig; page_id?: string };
 
 // Icon names are stored as plain strings; anything not in the library is dropped to "" (no icon).
 export const iconName = (v: unknown) => (typeof v === "string" && Object.hasOwn(ICON_LIBRARY, v) ? v : "");
@@ -377,8 +378,21 @@ export const BLOCK_TYPES = [
     fields: [
       { key: "heading", label: "Heading", kind: "text", placeholder: "Latest news" },
       { key: "count", label: "How many stories", kind: "choice", options: [{ value: "3", label: "3" }, { value: "6", label: "6" }, { value: "9", label: "9" }] },
+      { key: "link_label", label: "“See all” button text", kind: "text", placeholder: "View all news" },
+      { key: "link", label: "“See all” button link", kind: "link" },
     ],
-    defaults: { heading: "Latest news", count: "3" },
+    defaults: { heading: "Latest news", count: "3", link_label: "View all news", link: "" },
+  },
+  {
+    type: "news_list",
+    group: "content",
+    label: "News stories (full list)",
+    hint: "All your stories, searchable and filterable by tag. Put it on a page of its own, such as News",
+    fields: [
+      { key: "heading", label: "Heading (optional)", kind: "text", placeholder: "News" },
+      { key: "layout", label: "How to show stories", kind: "choice", options: NEWS_LAYOUTS.map((l) => ({ value: l.key, label: `${l.label}: ${l.hint}` })) },
+    ],
+    defaults: { heading: "", layout: "full" },
   },
   {
     type: "resources",
@@ -996,6 +1010,7 @@ export function blockSummary(type: string, c: BlockConfig) {
   if (type === "cta") return configText(c, "heading");
   if (type === "history") return configText(c, "heading") || `${configList(c).length} milestones`;
   if (type === "location_map") return configList(c).map((i) => i.name).filter(Boolean).join(" · ");
+  if (type === "news_list") return configText(c, "heading") || "All stories";
   if (type === "letter") return configText(c, "name") || configText(c, "heading");
   if (type === "careers") return configText(c, "heading");
   if (type === "approach" || type === "first_day") return configText(c, "heading");
@@ -1005,4 +1020,22 @@ export function blockSummary(type: string, c: BlockConfig) {
     return configList(c).map((i) => i.title || i.name || i.label || i.term || i.text).filter(Boolean).join(" · ");
   }
   return configText(c, "headline") || configText(c, "heading");
+}
+
+const slugify = (t: string) => t.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+// URL anchors for the blocks on one page, taken from their internal names, so buttons can scroll to a block
+// ("/about#our-mission"). Blocks without a name get none. Names that slug alike get -2, -3 ... in page order.
+export function blockAnchors(blocks: { id: string; config: BlockConfig }[]): Record<string, string> {
+  const used = new Set<string>();
+  const out: Record<string, string> = {};
+  for (const b of blocks) {
+    const base = slugify(configText(b.config, "internal_name"));
+    if (!base) continue;
+    let anchor = base;
+    for (let n = 2; used.has(anchor); n++) anchor = `${base}-${n}`;
+    used.add(anchor);
+    out[b.id] = anchor;
+  }
+  return out;
 }

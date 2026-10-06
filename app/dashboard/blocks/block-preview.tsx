@@ -10,7 +10,7 @@ import { button } from "../ui";
 
 // A sheet that slides up from the bottom showing the block as visitors would see it, filled with sample content.
 // The preview itself is inert: nothing in it can be clicked, so sample links never navigate away.
-export function BlockPreview({ type, color, onClose }: { type: string; color: string; onClose: () => void }) {
+export function BlockPreview({ type, pageId, color, onClose }: { type: string; pageId: string; color: string; onClose: () => void }) {
   const def = blockType(type);
   const sample = previewBlock(type, color);
 
@@ -34,7 +34,7 @@ export function BlockPreview({ type, color, onClose }: { type: string; color: st
             <h2 className="truncate text-lg font-semibold">{def.label}</h2>
             <p className="truncate text-sm text-gray-500">Preview with sample content, in your theme color</p>
           </div>
-          <form action={addBlock.bind(null, type)}>
+          <form action={addBlock.bind(null, pageId, type)}>
             <button className={button}>Add this block</button>
           </form>
           <button type="button" aria-label="Close preview" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-100 hover:text-gray-700">
@@ -43,7 +43,7 @@ export function BlockPreview({ type, color, onClose }: { type: string; color: st
         </div>
         <div className="overflow-y-auto bg-white">
           <div inert className="pointer-events-none text-gray-900" style={{ "--theme-color": color } as React.CSSProperties}>
-            {type === "announcement" ? <AnnouncementBar block={sample.block} /> : <BlockView block={sample.block} urls={sample.urls} news={SAMPLE_NEWS} newsLabel="News" preview />}
+            {type === "announcement" ? <AnnouncementBar block={sample.block} /> : <BlockView block={sample.block} urls={sample.urls} news={SAMPLE_NEWS} preview />}
           </div>
         </div>
       </div>

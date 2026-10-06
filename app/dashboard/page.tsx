@@ -2,23 +2,16 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { dnsRecordsFor } from "@/lib/domain";
-import { getAboutSections, getDirectors, logoUrl } from "@/lib/site";
+import { logoUrl, type SitePage } from "@/lib/site";
 import { logout } from "../login/actions";
-import { AboutForm, AddDomainForm, DirectorsSettingsForm, FooterForm, HeaderStyleForm, NewsSettingsForm, LogoForm, MessageForm, RemoveDomainForm, SiteNameForm, VerifyForm } from "./forms";
+import { AddDomainForm, FooterForm, HeaderStyleForm, LogoForm, MessageForm, RemoveDomainForm, SiteNameForm, VerifyForm } from "./forms";
 import { buttonSecondary } from "./ui";
 import { NewsList } from "./news/news-list";
 import { BlockList } from "./blocks/block-list";
-import type { HomeBlock } from "@/lib/blocks";
+import { PageSettingsForm, PagesList } from "./pages/page-forms";
+import type { PageBlock } from "@/lib/blocks";
 
 export const dynamic = "force-dynamic";
-
-const TABS = [
-  { key: "domain", label: "Domain" },
-  { key: "site", label: "Site" },
-  { key: "home", label: "Home" },
-  { key: "about", label: "About" },
-  { key: "news", label: "News" },
-] as const;
 
 function Card({ title, description, aside, children }: { title: string; description?: string; aside?: React.ReactNode; children: React.ReactNode }) {
   return (
@@ -41,19 +34,31 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
   if (!auth.user) redirect("/login");
 
   const { data: site } = await supabase.from("sites").select("*").eq("owner_id", auth.user.id).maybeSingle();
-  const aboutSections = site ? await getAboutSections(site.id) : [];
-  const directors = site ? await getDirectors(site.id) : [];
+  const { data: pageRows } = site
+    ? await supabase.from("pages").select("id, slug, title, is_home, show_in_menu, sort_order").eq("site_id", site.id).order("sort_order").order("created_at")
+    : { data: null };
+  // Home first, then the owner's order: the same order the site's menu uses.
+  const pages: SitePage[] = [...(pageRows ?? [])].sort((a, b) => Number(b.is_home) - Number(a.is_home));
   const { data: newsRows } = site
     ? await supabase.from("news_items").select("id, name, story, link, tags, visible, published_on").eq("site_id", site.id).order("sort_order").order("created_at", { ascending: false })
     : { data: null };
-  const { data: blockRows } = site
-    ? await supabase.from("home_blocks").select("id, type, enabled, config").eq("site_id", site.id).order("sort_order").order("created_at")
-    : { data: null };
   const logo = await logoUrl(site?.logo_path ?? null);
 
-  // New sites land on Domain until it's verified; after that, on the content they'll edit most.
+  // One tab per page, between Site and News. New sites land on Domain until it's verified; after that, on the Site tab.
+  const tabs = [
+    { key: "domain", label: "Domain" },
+    { key: "site", label: "Site" },
+    ...pages.map((p) => ({ key: `p-${p.id}`, label: p.title })),
+    { key: "news", label: "News" },
+  ];
   const { tab: requested, error: blockError } = await searchParams;
-  const tab = TABS.find((t) => t.key === requested)?.key ?? (site?.verified_at ? "site" : "domain");
+  // "home" is the old name of the Home page's tab, so old links keep working.
+  const wanted = requested === "home" ? `p-${pages.find((p) => p.is_home)?.id}` : requested;
+  const tab = tabs.find((t) => t.key === wanted)?.key ?? (site?.verified_at ? "site" : "domain");
+  const page = pages.find((p) => tab === `p-${p.id}`);
+  const { data: blockRows } = page
+    ? await supabase.from("page_blocks").select("id, type, enabled, config").eq("page_id", page.id).order("sort_order").order("created_at")
+    : { data: null };
 
   return (
     <div className="flex-1 bg-gray-50">
@@ -78,8 +83,8 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
           </Card>
         ) : (
           <>
-            <nav className="inline-flex gap-1 rounded-xl bg-gray-200/60 p-1">
-              {TABS.map((t) => (
+            <nav className="flex flex-wrap gap-1 rounded-xl bg-gray-200/60 p-1">
+              {tabs.map((t) => (
                 <Link
                   key={t.key}
                   href={`/dashboard?tab=${t.key}`}
@@ -129,7 +134,10 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
 
             {tab === "site" && (
               <>
-                <Card title="Home page message" description="Shown on your home page.">
+                <Card title="Pages" description="Each page appears in your site's menu and gets its own tab above, where you add blocks to it.">
+                  <PagesList pages={pages} />
+                </Card>
+                <Card title="Home page message" description="Shown on your home page until you turn on a block there.">
                   <MessageForm message={site.message} />
                 </Card>
                 <Card title="Logo" description="Appears at the top left of every page.">
@@ -147,64 +155,26 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
               </>
             )}
 
-            {tab === "home" && (
-              <Card title="Home page blocks" description="Sections stacked top to bottom on your home page. With none turned on, your home page message is shown instead.">
-                {typeof blockError === "string" && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{blockError}</p>}
-                <BlockList blocks={(blockRows ?? []) as HomeBlock[]} themeColor={site.theme_color} />
-              </Card>
+            {page && (
+              <>
+                <Card title="Blocks" description={page.is_home ? "Sections stacked top to bottom on your home page. With none turned on, your home page message is shown instead." : "Sections stacked top to bottom on this page."}>
+                  {typeof blockError === "string" && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{blockError}</p>}
+                  <BlockList blocks={(blockRows ?? []) as PageBlock[]} themeColor={site.theme_color} pageId={page.id} />
+                </Card>
+                <Card title="Page settings" description={page.is_home ? "Your home page." : `Lives at /${page.slug}`}>
+                  <PageSettingsForm key={page.id} page={page} />
+                </Card>
+              </>
             )}
 
             {tab === "news" && (
-              <>
-                <Card title="News page" description="A page of stories your visitors can search and filter by tag.">
-                  <NewsSettingsForm enabled={site.news_enabled} label={site.news_label} layout={site.news_layout} />
-                </Card>
-                <Card
-                  title="Stories"
-                  description="Newest first by default. Reorder with the arrows."
-                  aside={<Link href="/dashboard/news/new" className={buttonSecondary}>Add story</Link>}
-                >
-                  <NewsList items={newsRows ?? []} />
-                </Card>
-              </>
-            )}
-
-            {tab === "about" && (
-              <>
-                <Card title="About page" description="One page with a section for each part you fill in.">
-                  <AboutForm enabled={site.about_enabled} label={site.about_label} sections={aboutSections} />
-                </Card>
-                <Card
-                  title={site.directors_label}
-                  description={`A section of your ${site.about_label} page.`}
-                  aside={
-                    <Link href="/dashboard/directors/new" className={buttonSecondary}>Add person</Link>
-                  }
-                >
-                  {directors.length > 0 ? (
-                    <ul className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200">
-                      {directors.map((d) => (
-                        <li key={d.id}>
-                          <Link href={`/dashboard/directors/${d.id}`} className="flex items-center justify-between gap-4 px-4 py-3 transition hover:bg-gray-50">
-                            <span className="font-medium">{d.name}</span>
-                            <span className="text-sm text-gray-500">{d.title}</span>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <p className="rounded-xl border border-dashed border-gray-200 px-4 py-6 text-center text-sm text-gray-500">No one added yet.</p>
-                  )}
-                  <div className="border-t border-gray-100 pt-5">
-                    <DirectorsSettingsForm
-                      enabled={site.directors_enabled}
-                      label={site.directors_label}
-                      layout={site.directors_layout}
-                      shape={site.directors_photo_shape}
-                    />
-                  </div>
-                </Card>
-              </>
+              <Card
+                title="Stories"
+                description="The stories your News stories and Latest news blocks show. To display them, add one of those blocks to a page. Newest first by default; reorder with the arrows."
+                aside={<Link href="/dashboard/news/new" className={buttonSecondary}>Add story</Link>}
+              >
+                <NewsList items={newsRows ?? []} />
+              </Card>
             )}
           </>
         )}

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { createContext, useActionState, useContext, useRef, useState } from "react";
 import { ICON_LIBRARY } from "@/components/icon-library";
 import { Icon, LibraryIcon } from "@/components/icons";
-import { MAX_ACTIONS, configItems, configList, configText, type BlockField, type HomeBlock, type LibraryLogo } from "@/lib/blocks";
+import { MAX_ACTIONS, configItems, configList, configText, type BlockField, type PageBlock, type LibraryLogo } from "@/lib/blocks";
 import type { PageLink } from "@/lib/site";
 import { RichEditor } from "../rich-editor";
 import { publicUrl, uploadToBucket } from "@/lib/upload";
@@ -334,7 +334,7 @@ function ListField({ field, initial, urls, library, pages }: { field: Extract<Bl
 }
 
 // Renders whatever fields the block type declares in lib/blocks.ts.
-export function BlockForm({ block, fields, urls, pages, library }: { block: HomeBlock; fields: readonly BlockField[]; urls: Record<string, string>; pages: PageLink[]; library: LibraryLogo[] }) {
+export function BlockForm({ block, fields, urls, pages, library }: { block: PageBlock; fields: readonly BlockField[]; urls: Record<string, string>; pages: PageLink[]; library: LibraryLogo[] }) {
   const [state, action, pending] = useActionState(saveBlock.bind(null, block.id), null as FormState);
   const [uploads, setUploads] = useState(0);
   const c = block.config;
@@ -434,7 +434,7 @@ export function BlockForm({ block, fields, urls, pages, library }: { block: Home
         {state?.ok && <p className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">{state.ok}</p>}
         <div className="flex items-center gap-4">
           <button disabled={pending || uploads > 0} className={button}>{pending ? "Saving…" : uploads > 0 ? "Uploading…" : "Save"}</button>
-          <Link href="/dashboard?tab=home" className={dangerLink}>Back to list</Link>
+          <Link href={`/dashboard?tab=p-${block.page_id}`} className={dangerLink}>Back to list</Link>
         </div>
       </form>
 

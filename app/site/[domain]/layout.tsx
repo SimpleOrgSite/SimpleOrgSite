@@ -5,7 +5,7 @@ import { SITE_MARKER } from "@/lib/domain";
 import { logoHeight } from "@/lib/logo";
 import { AnnouncementBar } from "./blocks";
 import { SiteNav, type NavItem } from "./site-nav";
-import { getAboutSections, getHomeBlocks, isVisible, getDirectors, getSite, logoUrl } from "@/lib/site";
+import { getAnnouncements, getPages, getSite, logoUrl } from "@/lib/site";
 
 // Browser tab: the company's name and logo. Without a logo, a letter on the theme color stands in rather than the platform default.
 export async function generateMetadata({ params }: LayoutProps<"/site/[domain]">): Promise<Metadata> {
@@ -30,20 +30,14 @@ export default async function SiteLayout({ children, params }: LayoutProps<"/sit
   const showEmail = site.footer_show_email && !!site.footer_email;
   const hasFooter =
     (site.footer_show_logo && !!logo) || (site.footer_show_name && !!site.site_name) || site.footer_show_nav || site.footer_show_copyright || showEmail;
-  // About is one page; its dropdown jumps to each filled-in part of it.
-  // Home is always first: not everyone knows the logo is a link.
-  const nav: NavItem[] = [{ href: "/", label: "Home", children: [] }];
-  if (site.about_enabled) {
-    const children = (await getAboutSections(site.id)).filter(isVisible).map((s) => ({ href: `/about#${s.anchor}`, label: s.title }));
-    if (site.directors_enabled && (await getDirectors(site.id)).length > 0) {
-      children.push({ href: "/about#directors", label: site.directors_label || "Directors" });
-    }
-    nav.push({ href: "/about", label: site.about_label || "About Us", children });
-  }
+  // The menu is the site's pages: Home first (not everyone knows the logo is a link), then those marked "show in menu".
+  const pages = await getPages(site.id);
+  const nav: NavItem[] = pages
+    .filter((p) => p.is_home || p.show_in_menu)
+    .map((p) => ({ href: p.is_home ? "/" : `/${p.slug}`, label: p.title, children: [] }));
+  if (!nav.some((n) => n.href === "/")) nav.unshift({ href: "/", label: "Home", children: [] });
 
-  if (site.news_enabled) nav.push({ href: "/news", label: site.news_label || "News", children: [] });
-
-  const announcements = (await getHomeBlocks(site.id)).filter((b) => b.type === "announcement");
+  const announcements = await getAnnouncements(site.id);
 
   // The marker lives in the layout so every page proves it was served by us.
   const marker = { [SITE_MARKER]: site.id };

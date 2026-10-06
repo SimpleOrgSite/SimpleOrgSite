@@ -1,22 +1,4 @@
-// Safe to import from client components (no server code).
-
-export type Director = {
-  id: string;
-  name: string;
-  title: string;
-  affiliation: string;
-  photo_path: string | null;
-  bio: string;
-  email: string;
-};
-
-export const DIRECTOR_LAYOUTS = [
-  { key: "list", label: "Names and titles only" },
-  { key: "modal", label: "Photo, name and title; click to show bio" },
-  { key: "side", label: "Photo, name and title with bio on the side" },
-  { key: "cards", label: "Photo, name and title, no bio" },
-] as const;
-export type DirectorLayout = (typeof DIRECTOR_LAYOUTS)[number]["key"];
+// Photo shapes, shared by the Team grid block. Safe to import from client components (no server code).
 
 export const PHOTO_SHAPES = [
   { key: "rectangle", label: "Rectangle" },

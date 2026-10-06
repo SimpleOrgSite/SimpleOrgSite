@@ -2,12 +2,13 @@ import Link from "next/link";
 import { Icon, LibraryIcon } from "@/components/icons";
 import { CountUp } from "./count-up";
 import { Gallery } from "./gallery";
+import { NewsFeed as FullNewsFeed } from "./news-feed";
 import { LocationViewer } from "./location-viewer";
 import { PhotoCarousel } from "./photo-carousel";
-import { formatNewsDate, sortByDateDesc, storyText, type NewsItem } from "@/lib/news";
+import { formatNewsDate, NEWS_LAYOUTS, sortByDateDesc, storyText, type NewsItem } from "@/lib/news";
 import { SHAPE_CLASSES, type PhotoShape } from "@/lib/directors";
 import { sanitizeRichText } from "@/lib/richtext";
-import { AVAILABILITY, MONTHS, configItems, configList, configText, fileKey, libraryKey, type HomeBlock } from "@/lib/blocks";
+import { AVAILABILITY, MONTHS, configItems, configList, configText, fileKey, libraryKey, type PageBlock } from "@/lib/blocks";
 
 type Urls = Record<string, string>;
 // A row's own upload, or else the shared-library logo they picked.
@@ -30,7 +31,7 @@ function SmartLink({ href, className, style, children }: { href: string; classNa
 const buttonBase = "inline-flex items-center rounded-xl px-6 py-3 font-medium shadow-sm transition hover:opacity-85";
 
 // "onDark" is for buttons sitting on the theme color or a photo: white fill with theme-colored text, and a white outline for the second.
-function Buttons({ c, onDark, center }: { c: HomeBlock["config"]; onDark?: boolean; center?: boolean }) {
+function Buttons({ c, onDark, center }: { c: PageBlock["config"]; onDark?: boolean; center?: boolean }) {
   const primary = configText(c, "primary_label") && configText(c, "primary_link");
   const secondary = configText(c, "secondary_label") && configText(c, "secondary_link");
   if (!primary && !secondary) return null;
@@ -58,7 +59,7 @@ function Buttons({ c, onDark, center }: { c: HomeBlock["config"]; onDark?: boole
   );
 }
 
-export function AnnouncementBar({ block }: { block: HomeBlock }) {
+export function AnnouncementBar({ block }: { block: PageBlock }) {
   const c = block.config;
   const text = configText(c, "text");
   if (!text) return null;
@@ -79,7 +80,7 @@ export function AnnouncementBar({ block }: { block: HomeBlock }) {
   );
 }
 
-function Hero({ block, urls }: { block: HomeBlock; urls: Urls }) {
+function Hero({ block, urls }: { block: PageBlock; urls: Urls }) {
   const c = block.config;
   const imageUrl = urlOf(urls, configText(c, "image_path"));
   const center = configText(c, "align") !== "left";
@@ -99,7 +100,7 @@ function Hero({ block, urls }: { block: HomeBlock; urls: Urls }) {
   );
 }
 
-function HeroSplit({ block, urls }: { block: HomeBlock; urls: Urls }) {
+function HeroSplit({ block, urls }: { block: PageBlock; urls: Urls }) {
   const c = block.config;
   const imageUrl = urlOf(urls, configText(c, "image_path"));
   const imageLeft = configText(c, "image_side") === "left";
@@ -120,7 +121,7 @@ function HeroSplit({ block, urls }: { block: HomeBlock; urls: Urls }) {
   );
 }
 
-function QuickActions({ block }: { block: HomeBlock }) {
+function QuickActions({ block }: { block: PageBlock }) {
   const items = configItems(block.config).filter((i) => i.label);
   if (items.length === 0) return null;
   const card = "flex h-full flex-col items-center gap-3 rounded-2xl bg-white p-6 text-center shadow-sm ring-1 ring-gray-900/5 transition";
@@ -160,7 +161,7 @@ function PlanLogo({ plan, urls }: { plan: Record<string, string>; urls: Urls }) 
   );
 }
 
-function Insurance({ block, urls }: { block: HomeBlock; urls: Urls }) {
+function Insurance({ block, urls }: { block: PageBlock; urls: Urls }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.name || i.logo_path || i.logo_lib);
   if (items.length === 0) return null;
@@ -202,7 +203,7 @@ function Insurance({ block, urls }: { block: HomeBlock; urls: Urls }) {
   );
 }
 
-function Photos({ block, urls }: { block: HomeBlock; urls: Urls }) {
+function Photos({ block, urls }: { block: PageBlock; urls: Urls }) {
   const c = block.config;
   const slides = configList(c).flatMap((i) => {
     const url = urlOf(urls, i.photo_path);
@@ -219,7 +220,7 @@ function Photos({ block, urls }: { block: HomeBlock; urls: Urls }) {
   );
 }
 
-function Credentials({ block, urls }: { block: HomeBlock; urls: Urls }) {
+function Credentials({ block, urls }: { block: PageBlock; urls: Urls }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.name || i.logo_path || i.logo_lib);
   if (items.length === 0) return null;
@@ -250,7 +251,7 @@ function Credentials({ block, urls }: { block: HomeBlock; urls: Urls }) {
   );
 }
 
-function Stats({ block }: { block: HomeBlock }) {
+function Stats({ block }: { block: PageBlock }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.value || i.label);
   if (items.length === 0) return null;
@@ -289,7 +290,7 @@ function Person({ name, photo }: { name?: string; photo: string | null }) {
   );
 }
 
-function Testimonials({ block, urls }: { block: HomeBlock; urls: Urls }) {
+function Testimonials({ block, urls }: { block: PageBlock; urls: Urls }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.quote);
   if (items.length === 0) return null;
@@ -312,7 +313,7 @@ function Testimonials({ block, urls }: { block: HomeBlock; urls: Urls }) {
   );
 }
 
-function Testimonial({ block, urls }: { block: HomeBlock; urls: Urls }) {
+function Testimonial({ block, urls }: { block: PageBlock; urls: Urls }) {
   const c = block.config;
   if (!configText(c, "quote")) return null;
   return (
@@ -326,7 +327,7 @@ function Testimonial({ block, urls }: { block: HomeBlock; urls: Urls }) {
   );
 }
 
-function Outcomes({ block }: { block: HomeBlock }) {
+function Outcomes({ block }: { block: PageBlock }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.title || i.text);
   if (items.length === 0) return null;
@@ -350,7 +351,7 @@ function Outcomes({ block }: { block: HomeBlock }) {
 
 const iconCircle = (size: string) => ({ className: `flex ${size} shrink-0 items-center justify-center rounded-full`, style: { backgroundColor: `color-mix(in srgb, ${THEME} 12%, white)`, color: THEME } });
 
-function SectionHead({ c }: { c: HomeBlock["config"] }) {
+function SectionHead({ c }: { c: PageBlock["config"] }) {
   if (!configText(c, "heading") && !configText(c, "subhead")) return null;
   return (
     <div className="space-y-2 text-center">
@@ -360,7 +361,7 @@ function SectionHead({ c }: { c: HomeBlock["config"] }) {
   );
 }
 
-function Services({ block }: { block: HomeBlock }) {
+function Services({ block }: { block: PageBlock }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.title || i.text);
   if (items.length === 0) return null;
@@ -387,7 +388,7 @@ function Services({ block }: { block: HomeBlock }) {
   );
 }
 
-function ServicesList({ block, urls }: { block: HomeBlock; urls: Urls }) {
+function ServicesList({ block, urls }: { block: PageBlock; urls: Urls }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.title || i.text || i.image_path);
   if (items.length === 0) return null;
@@ -421,7 +422,7 @@ function ServicesList({ block, urls }: { block: HomeBlock; urls: Urls }) {
   );
 }
 
-function CareSettings({ block }: { block: HomeBlock }) {
+function CareSettings({ block }: { block: PageBlock }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.name || i.text);
   if (items.length === 0) return null;
@@ -445,7 +446,7 @@ function CareSettings({ block }: { block: HomeBlock }) {
   );
 }
 
-function Ages({ block }: { block: HomeBlock }) {
+function Ages({ block }: { block: PageBlock }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.range || i.label);
   if (items.length === 0) return null;
@@ -467,7 +468,7 @@ function Ages({ block }: { block: HomeBlock }) {
   );
 }
 
-function Approach({ block, urls }: { block: HomeBlock; urls: Urls }) {
+function Approach({ block, urls }: { block: PageBlock; urls: Urls }) {
   const c = block.config;
   const image = urlOf(urls, configText(c, "image_path"));
   const body = sanitizeRichText(configText(c, "body"));
@@ -489,7 +490,7 @@ function Approach({ block, urls }: { block: HomeBlock; urls: Urls }) {
   );
 }
 
-function Values({ block }: { block: HomeBlock }) {
+function Values({ block }: { block: PageBlock }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.title || i.text);
   if (items.length === 0) return null;
@@ -511,7 +512,7 @@ function Values({ block }: { block: HomeBlock }) {
   );
 }
 
-function Steps({ block }: { block: HomeBlock }) {
+function Steps({ block }: { block: PageBlock }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.title || i.text);
   if (items.length === 0) return null;
@@ -539,7 +540,7 @@ function Steps({ block }: { block: HomeBlock }) {
 }
 
 // Native <details>: opens and closes without any script and works with the keyboard and screen readers.
-function Faq({ block }: { block: HomeBlock }) {
+function Faq({ block }: { block: PageBlock }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.question);
   if (items.length === 0) return null;
@@ -563,7 +564,7 @@ function Faq({ block }: { block: HomeBlock }) {
   );
 }
 
-function FirstDay({ block }: { block: HomeBlock }) {
+function FirstDay({ block }: { block: PageBlock }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.text);
   const body = sanitizeRichText(configText(c, "body"));
@@ -592,7 +593,7 @@ function FirstDay({ block }: { block: HomeBlock }) {
   );
 }
 
-function Availability({ block }: { block: HomeBlock }) {
+function Availability({ block }: { block: PageBlock }) {
   const c = block.config;
   const look = AVAILABILITY[configText(c, "status") as keyof typeof AVAILABILITY] ?? AVAILABILITY.accepting;
   const link = configText(c, "link");
@@ -611,7 +612,7 @@ function Availability({ block }: { block: HomeBlock }) {
   );
 }
 
-function Team({ block, urls }: { block: HomeBlock; urls: Urls }) {
+function Team({ block, urls }: { block: PageBlock; urls: Urls }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.name || i.photo_path);
   if (items.length === 0) return null;
@@ -646,7 +647,7 @@ function Team({ block, urls }: { block: HomeBlock; urls: Urls }) {
   );
 }
 
-function Letter({ block, urls }: { block: HomeBlock; urls: Urls }) {
+function Letter({ block, urls }: { block: PageBlock; urls: Urls }) {
   const c = block.config;
   const photo = urlOf(urls, configText(c, "photo_path"));
   const name = configText(c, "name");
@@ -675,7 +676,7 @@ function Letter({ block, urls }: { block: HomeBlock; urls: Urls }) {
   );
 }
 
-function Careers({ block }: { block: HomeBlock }) {
+function Careers({ block }: { block: PageBlock }) {
   const c = block.config;
   const dark = configText(c, "style") !== "light";
   const link = configText(c, "link");
@@ -696,7 +697,7 @@ function Careers({ block }: { block: HomeBlock }) {
   );
 }
 
-function Positions({ block }: { block: HomeBlock }) {
+function Positions({ block }: { block: PageBlock }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.title);
   if (items.length === 0 && !configText(c, "empty_text") && !configText(c, "heading")) return null;
@@ -736,7 +737,7 @@ function Positions({ block }: { block: HomeBlock }) {
   );
 }
 
-function Locations({ block }: { block: HomeBlock }) {
+function Locations({ block }: { block: PageBlock }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.name || i.address);
   const areas = configText(c, "areas").split(/[\n,]+/).map((a) => a.trim()).filter(Boolean);
@@ -809,7 +810,7 @@ function EmbedPlaceholder({ icon, label, className }: { icon: string; label: str
   );
 }
 
-function ContactForm({ block, preview }: { block: HomeBlock; preview?: boolean }) {
+function ContactForm({ block, preview }: { block: PageBlock; preview?: boolean }) {
   const c = block.config;
   const src = configText(c, "embed");
   if (!src) return null;
@@ -840,7 +841,7 @@ function ContactForm({ block, preview }: { block: HomeBlock; preview?: boolean }
   );
 }
 
-function ContactInfo({ block }: { block: HomeBlock }) {
+function ContactInfo({ block }: { block: PageBlock }) {
   const c = block.config;
   const dark = configText(c, "style") === "dark";
   const phone = configText(c, "phone");
@@ -879,7 +880,7 @@ function ContactInfo({ block }: { block: HomeBlock }) {
   );
 }
 
-function Cta({ block }: { block: HomeBlock }) {
+function Cta({ block }: { block: PageBlock }) {
   const c = block.config;
   const dark = configText(c, "style") !== "light";
   return (
@@ -893,7 +894,7 @@ function Cta({ block }: { block: HomeBlock }) {
   );
 }
 
-function NewsFeed({ block, news, newsLabel }: { block: HomeBlock; news: NewsItem[]; newsLabel: string | null }) {
+function LatestNews({ block, news }: { block: PageBlock; news: NewsItem[] }) {
   const c = block.config;
   const items = sortByDateDesc(news).slice(0, Number(configText(c, "count")) || 3);
   if (items.length === 0) return null;
@@ -915,9 +916,9 @@ function NewsFeed({ block, news, newsLabel }: { block: HomeBlock; news: NewsItem
             </li>
           ))}
         </ul>
-        {newsLabel && (
+        {configText(c, "link") && (
           <div className="text-center">
-            <SmartLink href="/news" className={buttonBase} style={{ backgroundColor: THEME, color: "#fff" }}>View all {newsLabel}</SmartLink>
+            <SmartLink href={configText(c, "link")} className={buttonBase} style={{ backgroundColor: THEME, color: "#fff" }}>{configText(c, "link_label") || "View all news"}</SmartLink>
           </div>
         )}
       </div>
@@ -925,7 +926,21 @@ function NewsFeed({ block, news, newsLabel }: { block: HomeBlock; news: NewsItem
   );
 }
 
-function Resources({ block, urls }: { block: HomeBlock; urls: Urls }) {
+// The full, searchable list of stories (what the old News page showed), as a block that can sit on any page.
+function NewsList({ block, news }: { block: PageBlock; news: NewsItem[] }) {
+  const c = block.config;
+  const layout = NEWS_LAYOUTS.find((l) => l.key === configText(c, "layout"))?.key ?? "full";
+  return (
+    <section className="bg-gradient-to-b from-slate-50 to-white">
+      <div className={`mx-auto space-y-8 px-6 py-12 ${layout === "featured" ? "max-w-5xl" : "max-w-3xl"}`}>
+        {heading(configText(c, "heading"))}
+        <FullNewsFeed items={news} layout={layout} />
+      </div>
+    </section>
+  );
+}
+
+function Resources({ block, urls }: { block: PageBlock; urls: Urls }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.title);
   if (items.length === 0) return null;
@@ -958,7 +973,7 @@ function Resources({ block, urls }: { block: HomeBlock; urls: Urls }) {
   );
 }
 
-function Workshops({ block }: { block: HomeBlock }) {
+function Workshops({ block }: { block: PageBlock }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.title);
   if (items.length === 0 && !configText(c, "empty_text") && !configText(c, "heading")) return null;
@@ -996,7 +1011,7 @@ function Workshops({ block }: { block: HomeBlock }) {
 }
 
 // Only YouTube and Vimeo embed URLs get here (checked on save), shown through their privacy-friendly domains.
-function Video({ block, preview }: { block: HomeBlock; preview?: boolean }) {
+function Video({ block, preview }: { block: PageBlock; preview?: boolean }) {
   const c = block.config;
   const src = configText(c, "video");
   if (!src) return null;
@@ -1022,7 +1037,7 @@ function Video({ block, preview }: { block: HomeBlock; preview?: boolean }) {
   );
 }
 
-function GalleryBlock({ block, urls }: { block: HomeBlock; urls: Urls }) {
+function GalleryBlock({ block, urls }: { block: PageBlock; urls: Urls }) {
   const c = block.config;
   const photos = configList(c).flatMap((i) => {
     const url = urlOf(urls, i.photo_path);
@@ -1039,7 +1054,7 @@ function GalleryBlock({ block, urls }: { block: HomeBlock; urls: Urls }) {
   );
 }
 
-function Glossary({ block }: { block: HomeBlock }) {
+function Glossary({ block }: { block: PageBlock }) {
   const c = block.config;
   const filtered = configList(c).filter((i) => i.term);
   const items = configText(c, "sort") === "mine" ? filtered : [...filtered].sort((a, b) => a.term.localeCompare(b.term));
@@ -1064,7 +1079,7 @@ function Glossary({ block }: { block: HomeBlock }) {
   );
 }
 
-function RichText({ block }: { block: HomeBlock }) {
+function RichText({ block }: { block: PageBlock }) {
   const c = block.config;
   const center = configText(c, "align") === "center";
   return (
@@ -1077,7 +1092,7 @@ function RichText({ block }: { block: HomeBlock }) {
   );
 }
 
-function Compliance({ block }: { block: HomeBlock }) {
+function Compliance({ block }: { block: PageBlock }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.title || i.text);
   if (items.length === 0) return null;
@@ -1100,7 +1115,7 @@ function Compliance({ block }: { block: HomeBlock }) {
 }
 
 // Safety information, so it uses fixed warm red regardless of theme color.
-function Crisis({ block }: { block: HomeBlock }) {
+function Crisis({ block }: { block: PageBlock }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.name);
   if (items.length === 0) return null;
@@ -1130,7 +1145,7 @@ function Crisis({ block }: { block: HomeBlock }) {
   );
 }
 
-function Reviews({ block }: { block: HomeBlock }) {
+function Reviews({ block }: { block: PageBlock }) {
   const c = block.config;
   const rating = parseFloat(configText(c, "rating"));
   const count = configText(c, "count");
@@ -1163,7 +1178,7 @@ function Reviews({ block }: { block: HomeBlock }) {
   );
 }
 
-function Compare({ block }: { block: HomeBlock }) {
+function Compare({ block }: { block: PageBlock }) {
   const c = block.config;
   const us = configList(c, "us_items").filter((i) => i.text);
   const other = configList(c, "other_items").filter((i) => i.text);
@@ -1205,7 +1220,7 @@ function Compare({ block }: { block: HomeBlock }) {
   );
 }
 
-function Promises({ block }: { block: HomeBlock }) {
+function Promises({ block }: { block: PageBlock }) {
   const items = configList(block.config).filter((i) => i.title);
   if (items.length === 0) return null;
   return (
@@ -1225,7 +1240,7 @@ function Promises({ block }: { block: HomeBlock }) {
   );
 }
 
-function Referral({ block }: { block: HomeBlock }) {
+function Referral({ block }: { block: PageBlock }) {
   const c = block.config;
   return (
     <section>
@@ -1243,7 +1258,7 @@ function Referral({ block }: { block: HomeBlock }) {
   );
 }
 
-function Timeline({ block }: { block: HomeBlock }) {
+function Timeline({ block }: { block: PageBlock }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.title || i.text);
   if (items.length === 0) return null;
@@ -1268,7 +1283,7 @@ function Timeline({ block }: { block: HomeBlock }) {
   );
 }
 
-function Portal({ block }: { block: HomeBlock }) {
+function Portal({ block }: { block: PageBlock }) {
   const c = block.config;
   if (!configText(c, "primary_link")) return null;
   return (
@@ -1287,7 +1302,7 @@ function Portal({ block }: { block: HomeBlock }) {
   );
 }
 
-function Downloads({ block, urls }: { block: HomeBlock; urls: Urls }) {
+function Downloads({ block, urls }: { block: PageBlock; urls: Urls }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.title);
   if (items.length === 0) return null;
@@ -1319,7 +1334,7 @@ function Downloads({ block, urls }: { block: HomeBlock; urls: Urls }) {
   );
 }
 
-function Access({ block }: { block: HomeBlock }) {
+function Access({ block }: { block: PageBlock }) {
   const c = block.config;
   const languages = configText(c, "languages").split(/[\n,]+/).map((l) => l.trim()).filter(Boolean);
   const access = configText(c, "access").split("\n").map((l) => l.trim()).filter(Boolean);
@@ -1353,7 +1368,7 @@ function Access({ block }: { block: HomeBlock }) {
   );
 }
 
-function Spacer({ block }: { block: HomeBlock }) {
+function Spacer({ block }: { block: PageBlock }) {
   const c = block.config;
   const space = { sm: "py-4", md: "py-10", lg: "py-20" }[configText(c, "size") as "sm"] ?? "py-10";
   return (
@@ -1363,7 +1378,7 @@ function Spacer({ block }: { block: HomeBlock }) {
   );
 }
 
-function TwoColumns({ block }: { block: HomeBlock }) {
+function TwoColumns({ block }: { block: PageBlock }) {
   const c = block.config;
   const col = (head: string, body: string) =>
     head || body ? (
@@ -1385,7 +1400,7 @@ function TwoColumns({ block }: { block: HomeBlock }) {
   );
 }
 
-function Banner({ block, urls }: { block: HomeBlock; urls: Urls }) {
+function Banner({ block, urls }: { block: PageBlock; urls: Urls }) {
   const c = block.config;
   const image = urlOf(urls, configText(c, "image_path"));
   if (!image) return null;
@@ -1401,7 +1416,7 @@ function Banner({ block, urls }: { block: HomeBlock; urls: Urls }) {
   );
 }
 
-function Social({ block }: { block: HomeBlock }) {
+function Social({ block }: { block: PageBlock }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.link && i.icon);
   if (items.length === 0) return null;
@@ -1424,7 +1439,7 @@ function Social({ block }: { block: HomeBlock }) {
   );
 }
 
-function MapOnly({ block, preview }: { block: HomeBlock; preview?: boolean }) {
+function MapOnly({ block, preview }: { block: PageBlock; preview?: boolean }) {
   const c = block.config;
   const address = configText(c, "address");
   if (!address) return null;
@@ -1445,7 +1460,7 @@ function MapOnly({ block, preview }: { block: HomeBlock; preview?: boolean }) {
   );
 }
 
-function History({ block }: { block: HomeBlock }) {
+function History({ block }: { block: PageBlock }) {
   const c = block.config;
   const withMonth = configText(c, "precision") === "month";
   const sorted = configList(c)
@@ -1500,7 +1515,7 @@ function History({ block }: { block: HomeBlock }) {
   );
 }
 
-function LocationMap({ block, preview }: { block: HomeBlock; preview?: boolean }) {
+function LocationMap({ block, preview }: { block: PageBlock; preview?: boolean }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.name || i.address);
   if (items.length === 0) return null;
@@ -1514,7 +1529,7 @@ function LocationMap({ block, preview }: { block: HomeBlock; preview?: boolean }
   );
 }
 
-export function BlockView({ block, urls, news, newsLabel, preview }: { block: HomeBlock; urls: Urls; news: NewsItem[]; newsLabel: string | null; preview?: boolean }) {
+export function BlockView({ block, urls, news, preview }: { block: PageBlock; urls: Urls; news: NewsItem[]; preview?: boolean }) {
   switch (block.type) {
     case "hero": return <Hero block={block} urls={urls} />;
     case "hero_split": return <HeroSplit block={block} urls={urls} />;
@@ -1540,7 +1555,8 @@ export function BlockView({ block, urls, news, newsLabel, preview }: { block: Ho
     case "contact_form": return <ContactForm block={block} preview={preview} />;
     case "contact_info": return <ContactInfo block={block} />;
     case "cta": return <Cta block={block} />;
-    case "news_feed": return <NewsFeed block={block} news={news} newsLabel={newsLabel} />;
+    case "news_feed": return <LatestNews block={block} news={news} />;
+    case "news_list": return <NewsList block={block} news={news} />;
     case "resources": return <Resources block={block} urls={urls} />;
     case "workshops": return <Workshops block={block} />;
     case "video": return <Video block={block} preview={preview} />;
