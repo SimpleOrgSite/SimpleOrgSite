@@ -505,6 +505,190 @@ export const BLOCK_TYPES = [
     defaults: { heading: "If you need help right now", intro: "We're not an emergency service. If someone is in danger, please use one of these.", items: [{ name: "Emergency", phone: "911", text: "If someone is in immediate danger.", link: "" }, { name: "988 Suicide & Crisis Lifeline", phone: "988", text: "Call or text, any time, free and confidential.", link: "https://988lifeline.org" }, { name: "Crisis Text Line", phone: "", text: "Text HOME to 741741 to reach a trained crisis counselor.", link: "https://www.crisistextline.org" }, { name: "Poison Control", phone: "1-800-222-1222", text: "Free, expert help 24 hours a day.", link: "" }] },
   },
   {
+    type: "reviews",
+    group: "trust",
+    label: "Reviews badge",
+    hint: "Your star rating and review count, with a link to your reviews (entered by hand)",
+    fields: [
+      { key: "heading", label: "Heading (optional)", kind: "text", placeholder: "Families love us" },
+      { key: "rating", label: "Rating out of 5", kind: "text", placeholder: "4.9" },
+      { key: "count", label: "Number of reviews", kind: "text", placeholder: "120" },
+      { key: "source", label: "Where the reviews are", kind: "text", placeholder: "Google" },
+      { key: "link_label", label: "Link text", kind: "text", placeholder: "Read our reviews" },
+      { key: "link", label: "Link", kind: "link" },
+    ],
+    defaults: { heading: "Families love us", rating: "4.9", count: "120", source: "Google", link_label: "Read our reviews", link: "" },
+  },
+  {
+    type: "compare",
+    group: "trust",
+    label: "Why choose us",
+    hint: "Side by side: what you offer versus what families often find elsewhere",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Why families choose us" },
+      { key: "us_label", label: "Your column title", kind: "text", placeholder: "With us" },
+      { key: "us_items", label: "What you offer", kind: "list", itemLabel: "point", max: 8, fields: [{ key: "text", label: "Point", kind: "text" }] },
+      { key: "other_label", label: "Other column title", kind: "text", placeholder: "Elsewhere" },
+      { key: "other_items", label: "What families often find elsewhere", kind: "list", itemLabel: "point", max: 8, fields: [{ key: "text", label: "Point", kind: "text" }] },
+    ],
+    defaults: { heading: "Why families choose us", us_label: "With us", us_items: [{ text: "A callback within one business day" }, { text: "Parents are part of the team" }, { text: "Individualized, play-based plans" }, { text: "Regular progress updates" }], other_label: "Elsewhere", other_items: [{ text: "Long waits to hear back" }, { text: "One-size-fits-all programs" }, { text: "Little communication with parents" }] },
+  },
+  {
+    type: "promises",
+    group: "trust",
+    label: "Promise strip",
+    hint: "A slim row of short commitments, like “Intake within 5 days”",
+    fields: [
+      { key: "items", label: "Promises", kind: "list", itemLabel: "promise", max: 5, fields: [{ key: "icon", label: "Icon (optional)", kind: "icon" }, { key: "title", label: "Promise", kind: "text", placeholder: "Intake within 5 days" }, { key: "text", label: "Detail (optional)", kind: "text" }] },
+    ],
+    defaults: { items: [{ icon: "clock-check", title: "Intake within 5 days", text: "" }, { icon: "phone-call", title: "Same-week callback", text: "" }, { icon: "shield-check", title: "Insurance verified for you", text: "" }] },
+  },
+  {
+    type: "roles",
+    group: "people",
+    label: "Who does what",
+    hint: "Explain roles like BCBA, RBT and parent coach in plain language",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Who's on your child's team" },
+      { key: "subhead", label: "Subheading", kind: "text" },
+      { key: "items", label: "Roles", kind: "list", itemLabel: "role", max: 6, fields: [{ key: "icon", label: "Icon (optional)", kind: "icon" }, { key: "name", label: "Role", kind: "text", placeholder: "BCBA" }, { key: "text", label: "What they do", kind: "textarea" }] },
+    ],
+    defaults: { heading: "Who's on your child's team", subhead: "", items: [{ icon: "brain", name: "BCBA", text: "A Board Certified Behavior Analyst designs your child's plan and guides the team." }, { icon: "heart", name: "RBT", text: "A Registered Behavior Technician works with your child in sessions every week." }, { icon: "users", name: "Parent coach", text: "Helps you use the same strategies at home so progress carries over." }] },
+  },
+  {
+    type: "referral",
+    group: "locations",
+    label: "Referral callout",
+    hint: "A card for pediatricians, schools and other professionals to make a referral",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Referring a family?" },
+      { key: "text", label: "Text", kind: "textarea" },
+      ...buttonFields,
+    ],
+    defaults: { heading: "Referring a family?", text: "Pediatricians, schools and other professionals: we make referrals simple and keep you updated.", primary_label: "Make a referral", primary_link: "", secondary_label: "", secondary_link: "" },
+  },
+  {
+    type: "funding",
+    group: "start",
+    label: "Costs & funding",
+    hint: "Short cards on how families pay: Medicaid, private insurance, self-pay",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "How paying for ABA works" },
+      { key: "subhead", label: "Subheading", kind: "text" },
+      { key: "items", label: "Options", kind: "list", itemLabel: "option", max: 6, fields: [{ key: "icon", label: "Icon (optional)", kind: "icon" }, { key: "title", label: "Title", kind: "text", placeholder: "Private insurance" }, { key: "text", label: "Description", kind: "textarea" }, { key: "link", label: "Link (optional)", kind: "link" }] },
+    ],
+    defaults: { heading: "How paying for ABA works", subhead: "We'll check your benefits and explain every cost before you commit.", items: [{ icon: "shield-check", title: "Private insurance", text: "Many plans cover ABA. We verify your benefits and handle the paperwork.", link: "" }, { icon: "building-hospital", title: "Medicaid", text: "Medicaid covers ABA in many states. We'll help you find out what applies to you.", link: "" }, { icon: "wallet", title: "Self-pay", text: "Ask us about rates and payment options.", link: "" }] },
+  },
+  {
+    type: "timeline",
+    group: "start",
+    label: "A day in the life",
+    hint: "A typical session or day, step by step with times",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "What a session looks like" },
+      { key: "items", label: "Steps", kind: "list", itemLabel: "step", max: 10, fields: [{ key: "time", label: "Time or label", kind: "text", placeholder: "First 10 minutes" }, { key: "title", label: "Title", kind: "text", placeholder: "Warm-up play" }, { key: "text", label: "Description", kind: "textarea" }] },
+    ],
+    defaults: { heading: "What a session looks like", items: [{ time: "Arrival", title: "Warm-up play", text: "Your child settles in with a favorite activity and their therapist." }, { time: "Mid-session", title: "Learning through play", text: "Goals are worked on through games, books and everyday routines." }, { time: "Wrap-up", title: "Parent check-in", text: "You hear what went well and what to try at home." }] },
+  },
+  {
+    type: "portal",
+    group: "locations",
+    label: "Parent portal link",
+    hint: "One clear button to the login your families already use",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Already a client?" },
+      { key: "text", label: "Text", kind: "text", placeholder: "Sign in to see schedules, notes and invoices." },
+      { key: "primary_label", label: "Button text", kind: "text", placeholder: "Parent login" },
+      { key: "primary_link", label: "Button link", kind: "link" },
+    ],
+    defaults: { heading: "Already a client?", text: "Sign in to see schedules, session notes and invoices.", primary_label: "Parent login", primary_link: "" },
+  },
+  {
+    type: "downloads",
+    group: "start",
+    label: "Forms to download",
+    hint: "Intake packets and forms families can fill out before visiting (link to the files)",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Forms to complete before your visit" },
+      { key: "subhead", label: "Subheading", kind: "text" },
+      { key: "items", label: "Forms", kind: "list", itemLabel: "form", max: 12, fields: [{ key: "title", label: "Title", kind: "text", placeholder: "New client intake packet" }, { key: "text", label: "Description (optional)", kind: "text" }, { key: "link", label: "Link to the file", kind: "link" }] },
+    ],
+    defaults: { heading: "Forms to complete before your visit", subhead: "", items: [{ title: "New client intake packet", text: "Takes about 15 minutes.", link: "" }, { title: "Insurance information form", text: "", link: "" }] },
+  },
+  {
+    type: "access",
+    group: "start",
+    label: "Languages & accessibility",
+    hint: "Languages spoken and accommodations you offer",
+    fields: [
+      { key: "languages_heading", label: "Languages heading", kind: "text", placeholder: "Languages we speak" },
+      { key: "languages", label: "Languages", kind: "textarea", hint: "One per line, or separated by commas." },
+      { key: "access_heading", label: "Accessibility heading", kind: "text", placeholder: "Accessibility" },
+      { key: "access", label: "Accommodations", kind: "textarea", hint: "One per line." },
+    ],
+    defaults: { languages_heading: "Languages we speak", languages: "English\nSpanish", access_heading: "Accessibility", access: "Wheelchair-accessible entrance\nQuiet, low-stimulation spaces\nInterpreters available on request" },
+  },
+  {
+    type: "spacer",
+    group: "utility",
+    label: "Spacer / divider",
+    hint: "Extra space or a thin line between blocks",
+    fields: [
+      { key: "size", label: "Space", kind: "choice", options: [{ value: "sm", label: "Small" }, { value: "md", label: "Medium" }, { value: "lg", label: "Large" }] },
+      { key: "line", label: "Line", kind: "choice", options: [{ value: "none", label: "No line" }, { value: "line", label: "Thin line" }] },
+    ],
+    defaults: { size: "md", line: "none" },
+  },
+  {
+    type: "two_columns",
+    group: "utility",
+    label: "Two columns of text",
+    hint: "Two side-by-side columns, each with a heading and formatted text",
+    fields: [
+      { key: "heading", label: "Main heading (optional)", kind: "text" },
+      { key: "left_heading", label: "Left heading", kind: "text" },
+      { key: "left_body", label: "Left text", kind: "richtext" },
+      { key: "right_heading", label: "Right heading", kind: "text" },
+      { key: "right_body", label: "Right text", kind: "richtext" },
+    ],
+    defaults: { heading: "", left_heading: "For parents", left_body: "<p>Write something here.</p>", right_heading: "For professionals", right_body: "<p>Write something here.</p>" },
+  },
+  {
+    type: "banner",
+    group: "utility",
+    label: "Banner image",
+    hint: "A full-width photo with an optional caption",
+    fields: [
+      { key: "image", label: "Photo", kind: "image" },
+      { key: "caption", label: "Caption (optional)", kind: "text" },
+      { key: "height", label: "Height", kind: "choice", options: [{ value: "sm", label: "Short" }, { value: "md", label: "Medium" }, { value: "lg", label: "Tall" }] },
+    ],
+    defaults: { caption: "", height: "md" },
+  },
+  {
+    type: "social",
+    group: "locations",
+    label: "Social links",
+    hint: "Icon buttons for Facebook, Instagram, YouTube and more",
+    fields: [
+      { key: "heading", label: "Heading (optional)", kind: "text", placeholder: "Follow along" },
+      { key: "items", label: "Links", kind: "list", itemLabel: "link", max: 8, hint: "Search “facebook”, “instagram” and so on in the icon picker.", fields: [{ key: "icon", label: "Icon", kind: "icon" }, { key: "label", label: "Name (for screen readers)", kind: "text", placeholder: "Facebook" }, { key: "link", label: "Link", kind: "link" }] },
+    ],
+    defaults: { heading: "Follow along", items: [{ icon: "brand-facebook", label: "Facebook", link: "" }, { icon: "brand-instagram", label: "Instagram", link: "" }, { icon: "brand-youtube", label: "YouTube", link: "" }] },
+  },
+  {
+    type: "map",
+    group: "locations",
+    label: "Map",
+    hint: "A full-width map of one address",
+    fields: [
+      { key: "heading", label: "Heading (optional)", kind: "text" },
+      { key: "address", label: "Address", kind: "text", placeholder: "123 Main Street, Austin, TX 78701" },
+      { key: "height", label: "Height", kind: "choice", options: [{ value: "sm", label: "Short" }, { value: "md", label: "Medium" }, { value: "lg", label: "Tall" }] },
+    ],
+    defaults: { heading: "", address: "", height: "md" },
+  },
+  {
     type: "photos",
     group: "content",
     label: "Photo carousel",
@@ -740,14 +924,22 @@ export function blockSummary(type: string, c: BlockConfig) {
     try { return configText(c, "embed") ? `Form from ${new URL(configText(c, "embed")).hostname}` : "No form added yet"; } catch { return ""; }
   }
   if (type === "contact_info") return [configText(c, "phone"), configText(c, "email")].filter(Boolean).join(" · ");
+  if (type === "reviews") return [configText(c, "rating") && `${configText(c, "rating")} stars`, configText(c, "count") && `${configText(c, "count")} reviews`].filter(Boolean).join(" · ");
+  if (type === "compare" || type === "access") return configText(c, "heading") || configText(c, "languages_heading");
+  if (type === "referral" || type === "portal") return configText(c, "heading");
+  if (type === "spacer") return `${{ sm: "Small", md: "Medium", lg: "Large" }[configText(c, "size")] ?? "Medium"} space${configText(c, "line") === "line" ? " with a line" : ""}`;
+  if (type === "banner") return configText(c, "caption") || (configText(c, "image_path") ? "Photo" : "No photo yet");
+  if (type === "map") return configText(c, "address") || configText(c, "heading");
+  if (type === "social") return configList(c).filter((i) => i.link).map((i) => i.label || i.icon).join(" · ");
+  if (type === "two_columns") return [configText(c, "left_heading"), configText(c, "right_heading")].filter(Boolean).join(" · ");
   if (type === "cta") return configText(c, "heading");
   if (type === "letter") return configText(c, "name") || configText(c, "heading");
   if (type === "careers") return configText(c, "heading");
   if (type === "approach" || type === "first_day") return configText(c, "heading");
   if (type === "faq") return configList(c).map((i) => i.question).filter(Boolean).join(" · ");
   if (type === "availability") return configText(c, "message") || AVAILABILITY[configText(c, "status") as keyof typeof AVAILABILITY]?.text || "";
-  if (["services", "services_list", "settings", "ages", "values", "steps", "team", "positions", "locations", "resources", "workshops", "glossary", "compliance", "crisis"].includes(type)) {
-    return configList(c).map((i) => i.title || i.name || i.label || i.term).filter(Boolean).join(" · ");
+  if (["services", "services_list", "settings", "ages", "values", "steps", "team", "positions", "locations", "resources", "workshops", "glossary", "compliance", "crisis", "promises", "roles", "funding", "timeline", "downloads"].includes(type)) {
+    return configList(c).map((i) => i.title || i.name || i.label || i.term || i.text).filter(Boolean).join(" · ");
   }
   return configText(c, "headline") || configText(c, "heading");
 }

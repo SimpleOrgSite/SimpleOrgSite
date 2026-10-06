@@ -1116,6 +1116,318 @@ function Crisis({ block }: { block: HomeBlock }) {
   );
 }
 
+function Reviews({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const rating = parseFloat(configText(c, "rating"));
+  const count = configText(c, "count");
+  const source = configText(c, "source");
+  const link = configText(c, "link");
+  if (Number.isNaN(rating) && !count) return null;
+  const filled = Number.isNaN(rating) ? 0 : Math.max(0, Math.min(5, Math.round(rating)));
+  return (
+    <section>
+      <div className="mx-auto max-w-3xl px-6 py-12">
+        <div className="space-y-4 rounded-3xl bg-white p-8 text-center shadow-sm ring-1 ring-gray-900/5">
+          {configText(c, "heading") && <h2 className="text-2xl font-semibold" style={{ color: THEME }}>{configText(c, "heading")}</h2>}
+          {!Number.isNaN(rating) && (
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-5xl font-bold text-gray-900">{configText(c, "rating")}</span>
+              <span className="flex" role="img" aria-label={`${rating} out of 5 stars`}>
+                {[0, 1, 2, 3, 4].map((n) => <span key={n} style={{ color: n < filled ? "#f59e0b" : "#d1d5db" }}><Icon name="star" className="h-7 w-7 fill-current" /></span>)}
+              </span>
+            </div>
+          )}
+          {(count || source) && <p className="text-gray-600">{count ? `Based on ${count} ${source ? `${source} ` : ""}reviews` : `${source} reviews`}</p>}
+          {link && (
+            <div className="pt-1">
+              <SmartLink href={link} className={buttonBase} style={{ backgroundColor: THEME, color: "#fff" }}>{configText(c, "link_label") || "Read our reviews"}</SmartLink>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Compare({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const us = configList(c, "us_items").filter((i) => i.text);
+  const other = configList(c, "other_items").filter((i) => i.text);
+  if (us.length === 0 && other.length === 0) return null;
+  return (
+    <section>
+      <div className="mx-auto max-w-5xl space-y-10 px-6 py-14">
+        <SectionHead c={c} />
+        <div className={`grid gap-5 ${us.length > 0 && other.length > 0 ? "md:grid-cols-2" : "mx-auto max-w-xl"}`}>
+          {us.length > 0 && (
+            <div className="space-y-4 rounded-3xl p-7 ring-2" style={{ backgroundColor: `color-mix(in srgb, ${THEME} 7%, white)`, ["--tw-ring-color" as string]: THEME }}>
+              <h3 className="text-xl font-semibold" style={{ color: THEME }}>{configText(c, "us_label")}</h3>
+              <ul className="space-y-3">
+                {us.map((i, n) => (
+                  <li key={n} className="flex items-start gap-3 text-gray-800">
+                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white" style={{ backgroundColor: THEME }}><Icon name="check" className="h-3.5 w-3.5" /></span>
+                    {i.text}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {other.length > 0 && (
+            <div className="space-y-4 rounded-3xl bg-gray-50 p-7 ring-1 ring-gray-900/5">
+              <h3 className="text-xl font-semibold text-gray-600">{configText(c, "other_label")}</h3>
+              <ul className="space-y-3">
+                {other.map((i, n) => (
+                  <li key={n} className="flex items-start gap-3 text-gray-600">
+                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-gray-300 text-white"><Icon name="x" className="h-3.5 w-3.5" /></span>
+                    {i.text}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Promises({ block }: { block: HomeBlock }) {
+  const items = configList(block.config).filter((i) => i.title);
+  if (items.length === 0) return null;
+  return (
+    <section style={{ backgroundColor: `color-mix(in srgb, ${THEME} 8%, white)` }}>
+      <ul className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-12 gap-y-4 px-6 py-6">
+        {items.map((i, n) => (
+          <li key={n} className="flex items-center gap-3">
+            {i.icon && <span style={{ color: THEME }}><LibraryIcon name={i.icon} className="h-7 w-7" /></span>}
+            <span>
+              <span className="block font-semibold text-gray-900">{i.title}</span>
+              {i.text && <span className="block text-sm text-gray-600">{i.text}</span>}
+            </span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function Referral({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  return (
+    <section>
+      <div className="mx-auto max-w-5xl px-6 py-12">
+        <div className="flex flex-col items-start gap-6 rounded-3xl p-8 sm:flex-row sm:items-center sm:p-10" style={{ backgroundColor: `color-mix(in srgb, ${THEME} 8%, white)` }}>
+          <span {...iconCircle("h-16 w-16")}><LibraryIcon name="stethoscope" className="h-8 w-8" /></span>
+          <div className="flex-1 space-y-2">
+            {configText(c, "heading") && <h2 className="text-2xl font-semibold" style={{ color: THEME }}>{configText(c, "heading")}</h2>}
+            {configText(c, "text") && <p className="text-lg leading-relaxed text-gray-700">{configText(c, "text")}</p>}
+          </div>
+          <Buttons c={c} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Timeline({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.title || i.text);
+  if (items.length === 0) return null;
+  return (
+    <section>
+      <div className="mx-auto max-w-3xl space-y-10 px-6 py-14">
+        <SectionHead c={c} />
+        <ol>
+          {items.map((i, n) => (
+            <li key={n} className="relative grid gap-x-6 pb-10 last:pb-0 sm:grid-cols-[8rem_1fr]">
+              <p className="pb-1 font-semibold sm:pt-0.5 sm:text-right" style={{ color: THEME }}>{i.time}</p>
+              <div className="relative border-l-2 border-gray-200 pl-6 sm:ml-0">
+                <span className="absolute -left-[7px] top-1.5 h-3 w-3 rounded-full ring-4 ring-white" style={{ backgroundColor: THEME }} />
+                {i.title && <h3 className="text-lg font-semibold text-gray-900">{i.title}</h3>}
+                {i.text && <p className="mt-1 leading-relaxed text-gray-600">{i.text}</p>}
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
+function Portal({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  if (!configText(c, "primary_link")) return null;
+  return (
+    <section>
+      <div className="mx-auto flex max-w-4xl flex-wrap items-center justify-between gap-5 px-6 py-8">
+        <div className="flex items-center gap-4">
+          <span {...iconCircle("h-12 w-12")}><LibraryIcon name="lock" className="h-6 w-6" /></span>
+          <div>
+            {configText(c, "heading") && <p className="text-lg font-semibold text-gray-900">{configText(c, "heading")}</p>}
+            {configText(c, "text") && <p className="text-gray-600">{configText(c, "text")}</p>}
+          </div>
+        </div>
+        <Buttons c={c} />
+      </div>
+    </section>
+  );
+}
+
+function Downloads({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.title);
+  if (items.length === 0) return null;
+  return (
+    <section className="bg-gray-50">
+      <div className="mx-auto max-w-3xl space-y-8 px-6 py-14">
+        <SectionHead c={c} />
+        <ul className="space-y-3">
+          {items.map((i, n) => (
+            <li key={n} className="flex flex-wrap items-center gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-gray-900/5">
+              <span {...iconCircle("h-12 w-12")}><Icon name="file-text" className="h-6 w-6" /></span>
+              <div className="min-w-0 flex-1">
+                <p className="text-lg font-semibold text-gray-900">{i.title}</p>
+                {i.text && <p className="text-gray-600">{i.text}</p>}
+              </div>
+              {i.link && (
+                <SmartLink href={i.link} className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 font-medium text-white shadow-sm transition hover:opacity-85" style={{ backgroundColor: THEME }}>
+                  <LibraryIcon name="download" className="h-4 w-4" /> Download
+                </SmartLink>
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function Access({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const languages = configText(c, "languages").split(/[\n,]+/).map((l) => l.trim()).filter(Boolean);
+  const access = configText(c, "access").split("\n").map((l) => l.trim()).filter(Boolean);
+  if (languages.length === 0 && access.length === 0) return null;
+  return (
+    <section>
+      <div className={`mx-auto grid max-w-5xl gap-6 px-6 py-14 ${languages.length > 0 && access.length > 0 ? "md:grid-cols-2" : "max-w-xl"}`}>
+        {languages.length > 0 && (
+          <div className="space-y-4 rounded-3xl bg-white p-7 shadow-sm ring-1 ring-gray-900/5">
+            <h3 className="flex items-center gap-2 text-xl font-semibold text-gray-900"><span style={{ color: THEME }}><LibraryIcon name="world" className="h-6 w-6" /></span>{configText(c, "languages_heading") || "Languages"}</h3>
+            <ul className="flex flex-wrap gap-2">
+              {languages.map((l) => <li key={l} className="rounded-full px-3.5 py-1 font-medium" style={{ backgroundColor: `color-mix(in srgb, ${THEME} 12%, white)`, color: THEME }}>{l}</li>)}
+            </ul>
+          </div>
+        )}
+        {access.length > 0 && (
+          <div className="space-y-4 rounded-3xl bg-white p-7 shadow-sm ring-1 ring-gray-900/5">
+            <h3 className="text-xl font-semibold text-gray-900">{configText(c, "access_heading") || "Accessibility"}</h3>
+            <ul className="space-y-2.5">
+              {access.map((a) => (
+                <li key={a} className="flex items-start gap-3 text-gray-700">
+                  <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white" style={{ backgroundColor: THEME }}><Icon name="check" className="h-3.5 w-3.5" /></span>
+                  {a}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function Spacer({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const space = { sm: "py-4", md: "py-10", lg: "py-20" }[configText(c, "size") as "sm"] ?? "py-10";
+  return (
+    <div aria-hidden className={space}>
+      {configText(c, "line") === "line" && <hr className="mx-auto max-w-6xl border-gray-200" />}
+    </div>
+  );
+}
+
+function TwoColumns({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const col = (head: string, body: string) =>
+    head || body ? (
+      <div className="space-y-3">
+        {head && <h3 className="text-2xl font-semibold" style={{ color: THEME }}>{head}</h3>}
+        <div className="rich text-lg leading-relaxed text-gray-700" dangerouslySetInnerHTML={{ __html: sanitizeRichText(body) }} />
+      </div>
+    ) : null;
+  return (
+    <section>
+      <div className="mx-auto max-w-6xl space-y-10 px-6 py-14">
+        {configText(c, "heading") && <h2 className="text-center text-3xl font-semibold" style={{ color: THEME }}>{configText(c, "heading")}</h2>}
+        <div className="grid gap-10 md:grid-cols-2">
+          {col(configText(c, "left_heading"), configText(c, "left_body"))}
+          {col(configText(c, "right_heading"), configText(c, "right_body"))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function Banner({ block, urls }: { block: HomeBlock; urls: Urls }) {
+  const c = block.config;
+  const image = urlOf(urls, configText(c, "image_path"));
+  if (!image) return null;
+  const height = { sm: "h-48 sm:h-64", md: "h-64 sm:h-96", lg: "h-80 sm:h-[32rem]" }[configText(c, "height") as "sm"] ?? "h-64 sm:h-96";
+  return (
+    <section className={`relative w-full overflow-hidden ${height}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions */}
+      <img src={image} alt={configText(c, "caption")} loading="lazy" className="h-full w-full object-cover" />
+      {configText(c, "caption") && (
+        <p className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/65 to-transparent px-6 pb-5 pt-16 text-lg font-medium text-white sm:px-10 sm:text-xl">{configText(c, "caption")}</p>
+      )}
+    </section>
+  );
+}
+
+function Social({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.link && i.icon);
+  if (items.length === 0) return null;
+  return (
+    <section>
+      <div className="mx-auto max-w-4xl space-y-5 px-6 py-10 text-center">
+        {configText(c, "heading") && <h2 className="text-xl font-semibold text-gray-900">{configText(c, "heading")}</h2>}
+        <ul className="flex flex-wrap justify-center gap-3">
+          {items.map((i, n) => (
+            <li key={n}>
+              <SmartLink href={i.link} className="flex h-12 w-12 items-center justify-center rounded-full text-white shadow-sm transition hover:-translate-y-0.5 hover:opacity-85" style={{ backgroundColor: THEME }}>
+                <span className="sr-only">{i.label || i.icon}</span>
+                <LibraryIcon name={i.icon} className="h-6 w-6" />
+              </SmartLink>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function MapOnly({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const address = configText(c, "address");
+  if (!address) return null;
+  const height = { sm: "h-64", md: "h-96", lg: "h-[32rem]" }[configText(c, "height") as "sm"] ?? "h-96";
+  return (
+    <section>
+      <div className="mx-auto max-w-6xl space-y-6 px-6 py-10">
+        {configText(c, "heading") && <h2 className="text-center text-2xl font-semibold" style={{ color: THEME }}>{configText(c, "heading")}</h2>}
+        <iframe
+          title={`Map of ${address}`}
+          src={`https://www.google.com/maps?q=${encodeURIComponent(address)}&output=embed`}
+          loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          className={`${height} w-full rounded-3xl border-0 bg-gray-100 shadow-sm`}
+        />
+      </div>
+    </section>
+  );
+}
+
 export function BlockView({ block, urls, news, newsLabel }: { block: HomeBlock; urls: Urls; news: NewsItem[]; newsLabel: string | null }) {
   switch (block.type) {
     case "hero": return <Hero block={block} urls={urls} />;
@@ -1151,6 +1463,21 @@ export function BlockView({ block, urls, news, newsLabel }: { block: HomeBlock; 
     case "rich_text": return <RichText block={block} />;
     case "compliance": return <Compliance block={block} />;
     case "crisis": return <Crisis block={block} />;
+    case "reviews": return <Reviews block={block} />;
+    case "compare": return <Compare block={block} />;
+    case "promises": return <Promises block={block} />;
+    case "roles": return <CareSettings block={block} />;
+    case "referral": return <Referral block={block} />;
+    case "funding": return <Services block={block} />;
+    case "timeline": return <Timeline block={block} />;
+    case "portal": return <Portal block={block} />;
+    case "downloads": return <Downloads block={block} />;
+    case "access": return <Access block={block} />;
+    case "spacer": return <Spacer block={block} />;
+    case "two_columns": return <TwoColumns block={block} />;
+    case "banner": return <Banner block={block} urls={urls} />;
+    case "social": return <Social block={block} />;
+    case "map": return <MapOnly block={block} />;
     case "photos": return <Photos block={block} urls={urls} />;
     case "credentials": return <Credentials block={block} urls={urls} />;
     case "stats": return <Stats block={block} />;
