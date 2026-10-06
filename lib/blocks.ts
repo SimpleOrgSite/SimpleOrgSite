@@ -15,7 +15,7 @@ export const MAX_ACTIONS = 4;
 
 // One repeatable row inside a "list" field. An image sub-field "logo" is stored as "logo_path".
 // "library" on an image sub-field names a logo_library category the owner can pick from instead of uploading.
-export type ListSub = { key: string; label: string; kind: "text" | "textarea" | "image" | "icon" | "link" | "file"; placeholder?: string; library?: string };
+export type ListSub = { key: string; label: string; kind: "text" | "textarea" | "image" | "icon" | "link" | "file" | "year" | "select"; placeholder?: string; library?: string; options?: readonly { value: string; label: string }[] };
 export type LibraryLogo = { id: string; category: string; name: string; url: string };
 
 type Field =
@@ -49,6 +49,8 @@ export const BLOCK_GROUPS = [
   { key: "notices", label: "Notices & safety" },
 ] as const;
 export type BlockGroup = (typeof BLOCK_GROUPS)[number]["key"];
+
+export const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"] as const;
 
 export const BLOCK_TYPES = [
   {
@@ -689,6 +691,52 @@ export const BLOCK_TYPES = [
     defaults: { heading: "", address: "", height: "md" },
   },
   {
+    type: "history",
+    group: "content",
+    label: "History timeline",
+    hint: "Milestones by year, or year and month, on a vertical or horizontal timeline",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Our story" },
+      { key: "subhead", label: "Subheading", kind: "text" },
+      { key: "precision", label: "Dates", kind: "choice", options: [{ value: "year", label: "Year only" }, { value: "month", label: "Year and month" }] },
+      { key: "orientation", label: "Direction", kind: "choice", options: [{ value: "vertical", label: "Vertical" }, { value: "horizontal", label: "Horizontal (scrolls sideways)" }] },
+      { key: "order", label: "Order", kind: "choice", options: [{ value: "oldest", label: "Oldest first" }, { value: "newest", label: "Newest first" }] },
+      { key: "items", label: "Milestones", kind: "list", itemLabel: "milestone", max: 30, fields: [{ key: "year", label: "Year", kind: "year" }, { key: "month", label: "Month (used when you choose year and month)", kind: "select", options: [{ value: "", label: "No month" }, ...MONTHS.map((m, i) => ({ value: String(i + 1), label: m }))] }, { key: "title", label: "Title", kind: "text", placeholder: "Opened our first center" }, { key: "text", label: "Description", kind: "textarea" }] },
+    ],
+    defaults: {
+      heading: "Our story",
+      subhead: "",
+      precision: "year",
+      orientation: "vertical",
+      order: "oldest",
+      items: [
+        { year: "2012", month: "3", title: "We got started", text: "Our founder began working with a handful of local families." },
+        { year: "2016", month: "9", title: "Opened our first center", text: "A dedicated space with room for play, learning and parent coaching." },
+        { year: "2020", month: "4", title: "Launched telehealth", text: "Parent coaching and sessions by video, so no family was left behind." },
+        { year: "2024", month: "6", title: "Second location", text: "More families, closer to home." },
+      ],
+    },
+  },
+  {
+    type: "location_map",
+    group: "locations",
+    label: "Locations with map viewer",
+    hint: "A list of locations beside one map that switches when you click a location",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Our locations" },
+      { key: "subhead", label: "Subheading", kind: "text" },
+      { key: "items", label: "Locations", kind: "list", itemLabel: "location", max: 12, fields: [{ key: "name", label: "Name", kind: "text", placeholder: "Downtown center" }, { key: "description", label: "Description", kind: "textarea" }, { key: "address", label: "Address", kind: "textarea" }, { key: "phone", label: "Phone", kind: "text", placeholder: "(555) 123-4567" }] },
+    ],
+    defaults: {
+      heading: "Our locations",
+      subhead: "",
+      items: [
+        { name: "Downtown center", description: "Our main center, with play areas, therapy rooms and a parent lounge.", address: "123 Main Street\nAustin, TX 78701", phone: "(555) 123-4567" },
+        { name: "North office", description: "Parent coaching and early-intervention sessions.", address: "456 Oak Avenue\nRound Rock, TX 78664", phone: "(555) 987-6543" },
+      ],
+    },
+  },
+  {
     type: "photos",
     group: "content",
     label: "Photo carousel",
@@ -946,6 +994,8 @@ export function blockSummary(type: string, c: BlockConfig) {
   if (type === "social") return configList(c).filter((i) => i.link).map((i) => i.label || i.icon).join(" · ");
   if (type === "two_columns") return [configText(c, "left_heading"), configText(c, "right_heading")].filter(Boolean).join(" · ");
   if (type === "cta") return configText(c, "heading");
+  if (type === "history") return configText(c, "heading") || `${configList(c).length} milestones`;
+  if (type === "location_map") return configList(c).map((i) => i.name).filter(Boolean).join(" · ");
   if (type === "letter") return configText(c, "name") || configText(c, "heading");
   if (type === "careers") return configText(c, "heading");
   if (type === "approach" || type === "first_day") return configText(c, "heading");

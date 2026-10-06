@@ -2,11 +2,12 @@ import Link from "next/link";
 import { Icon, LibraryIcon } from "@/components/icons";
 import { CountUp } from "./count-up";
 import { Gallery } from "./gallery";
+import { LocationViewer } from "./location-viewer";
 import { PhotoCarousel } from "./photo-carousel";
 import { formatNewsDate, sortByDateDesc, storyText, type NewsItem } from "@/lib/news";
 import { SHAPE_CLASSES, type PhotoShape } from "@/lib/directors";
 import { sanitizeRichText } from "@/lib/richtext";
-import { AVAILABILITY, configItems, configList, configText, fileKey, libraryKey, type HomeBlock } from "@/lib/blocks";
+import { AVAILABILITY, MONTHS, configItems, configList, configText, fileKey, libraryKey, type HomeBlock } from "@/lib/blocks";
 
 type Urls = Record<string, string>;
 // A row's own upload, or else the shared-library logo they picked.
@@ -1444,6 +1445,75 @@ function MapOnly({ block, preview }: { block: HomeBlock; preview?: boolean }) {
   );
 }
 
+function History({ block }: { block: HomeBlock }) {
+  const c = block.config;
+  const withMonth = configText(c, "precision") === "month";
+  const sorted = configList(c)
+    .filter((i) => i.title || i.text)
+    .map((item) => ({ item, key: item.year ? Number(item.year) * 100 + (withMonth ? Number(item.month) || 0 : 0) : Infinity }))
+    // Milestones with no year always go last, whichever way the rest are ordered.
+    .sort((a, b) => (a.key === b.key ? 0 : a.key === Infinity ? 1 : b.key === Infinity ? -1 : configText(c, "order") === "newest" ? b.key - a.key : a.key - b.key))
+    .map((x) => x.item);
+  if (sorted.length === 0) return null;
+  const when = (i: Record<string, string>) => (!i.year ? "" : withMonth && MONTHS[Number(i.month) - 1] ? `${MONTHS[Number(i.month) - 1]} ${i.year}` : i.year);
+  const pill = (i: Record<string, string>) =>
+    when(i) ? <p className="mb-2 inline-block rounded-full px-3 py-1 text-sm font-semibold" style={{ backgroundColor: `color-mix(in srgb, ${THEME} 12%, white)`, color: THEME }}>{when(i)}</p> : null;
+  const card = (i: Record<string, string>) => (
+    <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-900/5">
+      {pill(i)}
+      {i.title && <h3 className="text-xl font-semibold text-gray-900">{i.title}</h3>}
+      {i.text && <p className="mt-1 leading-relaxed text-gray-600">{i.text}</p>}
+    </div>
+  );
+  const horizontal = configText(c, "orientation") === "horizontal";
+  return (
+    <section className="bg-gray-50">
+      <div className="mx-auto max-w-6xl space-y-10 px-6 py-14">
+        <SectionHead c={c} />
+        {horizontal ? (
+          // Cards hang off one continuous line; on narrow screens the row scrolls sideways.
+          <div className="-mx-6 overflow-x-auto px-6 pb-4">
+            <ol className="flex w-max">
+              {sorted.map((i, n) => (
+                <li key={n} className="relative w-72 shrink-0 pr-6 pt-8 sm:w-80">
+                  <span aria-hidden className="absolute left-0 right-0 top-[7px] h-0.5 bg-gray-300" />
+                  <span aria-hidden className="absolute left-0 top-0 h-4 w-4 rounded-full ring-4 ring-gray-50" style={{ backgroundColor: THEME }} />
+                  {card(i)}
+                </li>
+              ))}
+            </ol>
+          </div>
+        ) : (
+          // One column with the line on the left; from md up, callouts alternate either side of a center line.
+          <ol className="relative">
+            <span aria-hidden className="absolute bottom-0 left-[7px] top-0 w-0.5 bg-gray-300 md:left-1/2 md:-translate-x-1/2" />
+            {sorted.map((i, n) => (
+              <li key={n} className="relative pb-8 pl-10 last:pb-0 md:pl-0">
+                <span aria-hidden className="absolute left-0 top-7 h-4 w-4 rounded-full ring-4 ring-gray-50 md:left-1/2 md:-translate-x-1/2" style={{ backgroundColor: THEME }} />
+                <div className={`md:w-1/2 ${n % 2 === 0 ? "md:pr-10" : "md:ml-auto md:pl-10"}`}>{card(i)}</div>
+              </li>
+            ))}
+          </ol>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function LocationMap({ block, preview }: { block: HomeBlock; preview?: boolean }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.name || i.address);
+  if (items.length === 0) return null;
+  return (
+    <section className="bg-gray-50">
+      <div className="mx-auto max-w-6xl space-y-10 px-6 py-14">
+        <SectionHead c={c} />
+        <LocationViewer locations={items.map((i) => ({ name: i.name ?? "", description: i.description ?? "", address: i.address ?? "", phone: i.phone ?? "" }))} preview={preview} />
+      </div>
+    </section>
+  );
+}
+
 export function BlockView({ block, urls, news, newsLabel, preview }: { block: HomeBlock; urls: Urls; news: NewsItem[]; newsLabel: string | null; preview?: boolean }) {
   switch (block.type) {
     case "hero": return <Hero block={block} urls={urls} />;
@@ -1494,6 +1564,8 @@ export function BlockView({ block, urls, news, newsLabel, preview }: { block: Ho
     case "banner": return <Banner block={block} urls={urls} />;
     case "social": return <Social block={block} />;
     case "map": return <MapOnly block={block} preview={preview} />;
+    case "history": return <History block={block} />;
+    case "location_map": return <LocationMap block={block} preview={preview} />;
     case "photos": return <Photos block={block} urls={urls} />;
     case "credentials": return <Credentials block={block} urls={urls} />;
     case "stats": return <Stats block={block} />;

@@ -295,7 +295,13 @@ function ListField({ field, initial, urls, library, pages }: { field: Extract<Bl
             return (
               <div key={sub.key} className="space-y-1">
                 <span className={label}>{sub.label}</span>
-                {sub.kind === "file" ? (
+                {sub.kind === "year" ? (
+                  <input type="number" name={name} defaultValue={row.values[sub.key] ?? ""} min={1900} max={2100} placeholder="2015" className={`${input} sm:w-40`} />
+                ) : sub.kind === "select" ? (
+                  <select name={name} defaultValue={row.values[sub.key] ?? ""} className={`${input} sm:w-64`}>
+                    {sub.options?.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </select>
+                ) : sub.kind === "file" ? (
                   <FileInput name={name} path={row.values[`${sub.key}_file`] ?? ""} filename={row.values[`${sub.key}_filename`] ?? ""} />
                 ) : sub.kind === "link" ? (
                   <LinkInput name={name} defaultValue={row.values[sub.key] ?? ""} pages={pages} label={sub.label} />

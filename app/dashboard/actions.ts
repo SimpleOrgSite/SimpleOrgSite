@@ -465,6 +465,12 @@ export async function saveBlock(id: string, _: FormState, formData: FormData): P
             const link = normalizeBlockLink(String(formData.get(name) ?? ""));
             if (link === null) return fail(`${sub.label}: use a web address, a page like /about, or a phone or email link.`);
             row[sub.key] = link;
+          } else if (sub.kind === "year") {
+            const y = String(formData.get(name) ?? "").trim();
+            row[sub.key] = /^\d{4}$/.test(y) ? y : "";
+          } else if (sub.kind === "select") {
+            const v = String(formData.get(name) ?? "");
+            row[sub.key] = sub.options?.some((o) => o.value === v) ? v : "";
           } else if (sub.kind === "icon") {
             // An icon alone doesn't make a row worth keeping.
             row[sub.key] = iconName(formData.get(name));
