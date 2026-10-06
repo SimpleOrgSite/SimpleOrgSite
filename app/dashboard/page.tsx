@@ -61,7 +61,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
 
   return (
     <div className="flex-1 bg-gray-50">
-      <main className="mx-auto max-w-3xl space-y-6 px-6 py-10">
+      <main className="mx-auto max-w-[1500px] space-y-6 px-6 py-10 sm:px-10">
         <header className="flex items-center justify-between gap-4">
           <h1 className="text-2xl font-semibold">Your site</h1>
           <div className="flex items-center gap-4">
@@ -105,7 +105,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
             </nav>
 
             {tab === "domain" && (
-              <>
+              <div className="max-w-3xl space-y-6">
                 <Card
                   title={site.domain}
                   description="Add this record at your DNS provider, then check that it works."
@@ -136,52 +136,61 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
                     <RemoveDomainForm />
                   </div>
                 </Card>
-              </>
+              </div>
             )}
 
             {tab === "site" && (
-              <>
-                <Card title="Logo" description="Appears at the top left of every page.">
-                  <LogoForm logoUrl={logo} logoSize={site.logo_size} />
-                </Card>
-                <Card title="Site name" description="Shown in the header when you have no logo, or next to it if you choose.">
-                  <SiteNameForm siteName={site.site_name} showWithLogo={site.show_name_with_logo} />
-                </Card>
-                <Card title="Header" description="Light or dark, and the theme color that goes with it.">
-                  <HeaderStyleForm style={site.header_style} color={site.theme_color} siteName={site.site_name} showNameWithLogo={site.show_name_with_logo} logoUrl={logo} logoSize={site.logo_size} />
-                </Card>
-                <Card title="Footer" description="Shown at the bottom of every page.">
-                  <FooterForm site={site} headerStyle={site.header_style} color={site.theme_color} siteName={site.site_name} logoUrl={logo} />
-                </Card>
-              </>
+              <div className="grid gap-6 xl:grid-cols-2 xl:items-start">
+                <div className="space-y-6">
+                  <Card title="Logo" description="Appears at the top left of every page.">
+                    <LogoForm logoUrl={logo} logoSize={site.logo_size} />
+                  </Card>
+                  <Card title="Site name" description="Shown in the header when you have no logo, or next to it if you choose.">
+                    <SiteNameForm siteName={site.site_name} showWithLogo={site.show_name_with_logo} />
+                  </Card>
+                </div>
+                <div className="space-y-6">
+                  <Card title="Header" description="Light or dark, and the theme color that goes with it.">
+                    <HeaderStyleForm style={site.header_style} color={site.theme_color} siteName={site.site_name} showNameWithLogo={site.show_name_with_logo} logoUrl={logo} logoSize={site.logo_size} />
+                  </Card>
+                  <Card title="Footer" description="Shown at the bottom of every page.">
+                    <FooterForm site={site} headerStyle={site.header_style} color={site.theme_color} siteName={site.site_name} logoUrl={logo} />
+                  </Card>
+                </div>
+              </div>
             )}
 
             {tab === "pages" && (
-              <Card title="Pages" description="Each page appears in your site's menu and gets its own tab to the right, where you add blocks to it.">
-                <PagesList pages={pages} />
-              </Card>
+              <div className="max-w-4xl">
+                <Card title="Pages" description="Each page appears in your site's menu and gets its own tab to the right, where you add blocks to it.">
+                  <PagesList pages={pages} />
+                </Card>
+              </div>
             )}
 
             {page && (
-              <>
-                {!page.is_home && (
-                  <Card title="Menu placement" description="Make this its own item in your site's menu, or tuck it into a dropdown under another page.">
-                    <PagePlacementForm
-                      key={page.id}
-                      page={page}
-                      parents={pages.filter((p) => !p.is_home && !p.parent_id && p.id !== page.id)}
-                      hasSubPages={pages.some((p) => p.parent_id === page.id)}
-                    />
-                  </Card>
-                )}
+              // Blocks take the wide column; the page's own settings sit beside them on large screens.
+              <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_26rem] lg:items-start">
                 <Card title="Blocks" description={page.is_home ? "Sections stacked top to bottom on your home page. With none turned on, visitors see a simple “Coming soon” page." : "Sections stacked top to bottom on this page."}>
                   {typeof blockError === "string" && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{blockError}</p>}
                   <BlockList blocks={(blockRows ?? []) as PageBlock[]} themeColor={site.theme_color} pageId={page.id} />
                 </Card>
-                <Card title="Page settings" description={page.is_home ? "Your home page." : `Lives at /${page.slug}`}>
-                  <PageSettingsForm key={page.id} page={page} />
-                </Card>
-              </>
+                <div className="space-y-6">
+                  {!page.is_home && (
+                    <Card title="Menu placement" description="Make this its own item in your site's menu, or tuck it into a dropdown under another page.">
+                      <PagePlacementForm
+                        key={page.id}
+                        page={page}
+                        parents={pages.filter((p) => !p.is_home && !p.parent_id && p.id !== page.id)}
+                        hasSubPages={pages.some((p) => p.parent_id === page.id)}
+                      />
+                    </Card>
+                  )}
+                  <Card title="Page settings" description={page.is_home ? "Your home page." : `Lives at /${page.slug}`}>
+                    <PageSettingsForm key={page.id} page={page} />
+                  </Card>
+                </div>
+              </div>
             )}
           </>
         )}

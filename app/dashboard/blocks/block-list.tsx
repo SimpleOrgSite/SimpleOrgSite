@@ -87,7 +87,7 @@ export function BlockList({ blocks, themeColor, pageId }: { blocks: PageBlock[];
         {groups.map((g) => (
           <div key={g.key} className="space-y-2">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">{g.label}</h3>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {g.types.map((t) => (
                 <div key={t.type} className="relative">
                   <form action={addBlock.bind(null, pageId, t.type)} className="h-full">

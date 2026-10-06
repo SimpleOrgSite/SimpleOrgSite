@@ -34,7 +34,7 @@ export default async function EditBlock({ params }: PageProps<"/dashboard/blocks
 
   return (
     <div className="flex-1 bg-gray-50">
-      <main className="mx-auto max-w-2xl space-y-6 px-6 py-10">
+      <main className="mx-auto max-w-3xl space-y-6 px-6 py-10">
         <Link href={`/dashboard?tab=p-${block.page_id}`} className="text-sm text-gray-500 transition hover:text-gray-900">← Back</Link>
         <h1 className="text-2xl font-semibold">{configText(block.config, "internal_name") || def.label}</h1>
         {configText(block.config, "internal_name") && <p className="-mt-4 text-sm text-gray-400">{def.label}</p>}
