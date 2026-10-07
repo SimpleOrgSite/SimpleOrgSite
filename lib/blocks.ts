@@ -91,9 +91,10 @@ export const BLOCK_TYPES = [
       { key: "subhead", label: "Subheading", kind: "textarea" },
       { key: "image", label: "Photo", kind: "image" },
       { key: "image_side", label: "Photo position", kind: "choice", options: [{ value: "right", label: "Right" }, { value: "left", label: "Left" }] },
+      { key: "animation", label: "Photo animation", kind: "choice", options: [{ value: "none", label: "None" }, { value: "slide", label: "Fly in from the side" }, { value: "fade_up", label: "Fade up" }, { value: "zoom", label: "Zoom in" }, { value: "parallax", label: "Parallax (drifts as you scroll)" }, { value: "float", label: "Gentle float" }] },
       ...buttonFields,
     ],
-    defaults: { headline: "Compassionate ABA therapy for your child", subhead: "Individualized, play-based support that helps children and families thrive.", image_side: "right", primary_label: "Request an intake", primary_link: "", secondary_label: "", secondary_link: "" },
+    defaults: { headline: "Compassionate ABA therapy for your child", subhead: "Individualized, play-based support that helps children and families thrive.", image_side: "right", animation: "none", primary_label: "Request an intake", primary_link: "", secondary_label: "", secondary_link: "" },
   },
   {
     type: "quick_actions",

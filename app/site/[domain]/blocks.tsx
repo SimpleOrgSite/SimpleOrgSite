@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Icon, LibraryIcon } from "@/components/icons";
 import { CountUp } from "./count-up";
+import { HeroPhoto } from "./hero-photo";
 import { Gallery } from "./gallery";
 import { NewsFeed as FullNewsFeed } from "./news-feed";
 import { LocationViewer } from "./location-viewer";
@@ -112,10 +113,7 @@ function HeroSplit({ block, urls }: { block: PageBlock; urls: Urls }) {
           {configText(c, "subhead") && <p className="text-lg leading-relaxed text-gray-600 sm:text-xl">{configText(c, "subhead")}</p>}
           <Buttons c={c} />
         </div>
-        {imageUrl && (
-          // eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions
-          <img src={imageUrl} alt="" className="aspect-[4/3] w-full rounded-3xl object-cover shadow-lg" />
-        )}
+        {imageUrl && <HeroPhoto src={imageUrl} animation={configText(c, "animation")} fromLeft={imageLeft} />}
       </div>
     </section>
   );
