@@ -8,7 +8,7 @@ import { BLOCK_GROUPS, BLOCK_TYPES, blockSummary, blockType, configText, type Pa
 import { BlockPreview } from "./block-preview";
 import { addBlock, deleteBlock, moveBlock, moveBlockToPage, toggleBlock } from "../actions";
 
-const iconButton = "flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700 disabled:pointer-events-none disabled:opacity-30";
+const iconButton = "flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-200 hover:text-gray-700 disabled:pointer-events-none disabled:opacity-30";
 
 export function BlockList({ blocks, themeColor, pageId, pages }: { blocks: PageBlock[]; themeColor: string; pageId: string; pages: { id: string; title: string }[] }) {
   const [moving, setMoving] = useState<string | null>(null);
@@ -22,9 +22,9 @@ export function BlockList({ blocks, themeColor, pageId, pages }: { blocks: PageB
   return (
     <div className="space-y-5">
       {blocks.length > 0 ? (
-        <ul className="divide-y divide-gray-100 overflow-hidden rounded-xl border border-gray-200">
+        <ul className="space-y-2">
           {blocks.map((b, i) => (
-            <li key={b.id} className="px-4 py-3">
+            <li key={b.id} className="rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 transition duration-150 hover:-translate-y-0.5 hover:border-gray-400 hover:bg-white hover:shadow-md">
               <div className="flex items-center gap-3">
               <Link href={`/dashboard/blocks/${b.id}`} className="min-w-0 flex-1">
                 <span className={`flex items-baseline gap-2 ${b.enabled ? "" : "text-gray-400"}`}>
@@ -68,7 +68,7 @@ export function BlockList({ blocks, themeColor, pageId, pages }: { blocks: PageB
               </form>
               </div>
               {moving === b.id && (
-                <form action={moveBlockToPage.bind(null, b.id)} className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-gray-50 p-3">
+                <form action={moveBlockToPage.bind(null, b.id)} className="mt-3 flex flex-wrap items-center gap-2 rounded-xl bg-gray-100 p-3">
                   <span className="text-sm text-gray-600">Move to the end of</span>
                   <select name="page_id" defaultValue={otherPages[0]?.id} className={`${input} !w-auto min-w-48`}>
                     {otherPages.map((p) => <option key={p.id} value={p.id}>{p.title}</option>)}
@@ -84,7 +84,7 @@ export function BlockList({ blocks, themeColor, pageId, pages }: { blocks: PageB
         <p className="rounded-xl border border-dashed border-gray-200 px-4 py-6 text-center text-sm text-gray-500">No blocks on this page yet. Add one below.</p>
       )}
 
-      <div className="space-y-6 border-t border-gray-100 pt-5">
+      <div className="space-y-6 border-t border-gray-200 pt-5">
         <p className="text-sm font-medium text-gray-700">Add a block</p>
         <div className="relative">
           <Icon name="search" className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -109,23 +109,25 @@ export function BlockList({ blocks, themeColor, pageId, pages }: { blocks: PageB
             <h3 className="text-xs font-semibold uppercase tracking-wide text-gray-400">{g.label}</h3>
             <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {g.types.map((t) => (
-                <div key={t.type} className="relative">
-                  <form action={addBlock.bind(null, pageId, t.type)} className="h-full">
-                    <button className="flex h-full w-full items-start gap-3 rounded-xl border border-gray-200 px-4 py-3 pr-28 text-left transition hover:bg-gray-50">
-                      <Icon name="plus" className="mt-1 h-4 w-4 shrink-0 text-gray-400" />
-                      <span>
-                        <span className="block font-medium">{t.label}</span>
-                        <span className="block text-sm text-gray-500">{t.hint}</span>
-                      </span>
+                <div key={t.type} className="flex flex-col justify-between gap-3 rounded-xl border border-gray-300 bg-gray-50 px-4 py-3 transition duration-150 hover:-translate-y-0.5 hover:border-gray-400 hover:bg-white hover:shadow-md">
+                  <span>
+                    <span className="block font-medium">{t.label}</span>
+                    <span className="block text-sm text-gray-500">{t.hint}</span>
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <form action={addBlock.bind(null, pageId, t.type)}>
+                      <button className="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-gray-700">
+                        <Icon name="plus" className="h-4 w-4" /> Add
+                      </button>
+                    </form>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewing(t.type)}
+                      className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-gray-500 transition hover:bg-gray-200 hover:text-gray-900"
+                    >
+                      <Icon name="eye" className="h-4 w-4" /> Preview
                     </button>
-                  </form>
-                  <button
-                    type="button"
-                    onClick={() => setPreviewing(t.type)}
-                    className="absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm font-medium text-gray-500 transition hover:bg-gray-100 hover:text-gray-900"
-                  >
-                    <Icon name="eye" className="h-4 w-4" /> Preview
-                  </button>
+                  </div>
                 </div>
               ))}
             </div>

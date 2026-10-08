@@ -61,7 +61,7 @@ export default async function Dashboard({ searchParams }: PageProps<"/dashboard"
     : { data: null };
 
   return (
-    <div className="flex-1 bg-gray-50">
+    <div className="flex-1 bg-gray-100">
       <main className="mx-auto max-w-[1500px] space-y-6 px-6 py-10 sm:px-10">
         <header className="flex items-center justify-between gap-4">
           <h1 className="text-2xl font-semibold">Your site</h1>
