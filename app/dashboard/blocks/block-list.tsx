@@ -116,7 +116,7 @@ export function BlockList({ blocks, themeColor, pageId, pages }: { blocks: PageB
                   </span>
                   <div className="flex items-center gap-2">
                     <form action={addBlock.bind(null, pageId, t.type)}>
-                      <button className="inline-flex items-center gap-1.5 rounded-lg bg-gray-900 px-3 py-1.5 text-sm font-medium text-white shadow-sm transition hover:bg-gray-700">
+                      <button style={{ backgroundColor: themeColor }} className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-white shadow-sm transition hover:brightness-90">
                         <Icon name="plus" className="h-4 w-4" /> Add
                       </button>
                     </form>
