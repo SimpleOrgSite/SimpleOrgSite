@@ -386,6 +386,48 @@ function Services({ block }: { block: PageBlock }) {
   );
 }
 
+// Square tiles in a grid: photos and colored text cards side by side. Tones are mixed from the theme color so the
+// block always matches the site.
+const MOSAIC_TONES: Record<string, { bg: string; fg: string }> = {
+  theme: { bg: THEME, fg: "#fff" },
+  tint: { bg: "color-mix(in srgb, var(--theme-color, #111827) 22%, white)", fg: "#111827" },
+  soft: { bg: "color-mix(in srgb, var(--theme-color, #111827) 7%, white)", fg: "#111827" },
+  dark: { bg: "#232326", fg: "#fff" },
+};
+
+function Mosaic({ block, urls }: { block: PageBlock; urls: Urls }) {
+  const c = block.config;
+  const items = configList(c).filter((i) => i.title || i.text || i.image_path);
+  if (items.length === 0) return null;
+  return (
+    <section>
+      <div className="mx-auto max-w-6xl space-y-10 px-6 py-14">
+        <SectionHead c={c} />
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {items.map((i, n) => {
+            const image = urlOf(urls, i.image_path);
+            if (image) {
+              return (
+                <li key={n} className="aspect-square overflow-hidden rounded-3xl">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- user-uploaded, arbitrary dimensions */}
+                  <img src={image} alt={i.title || ""} loading="lazy" className="h-full w-full object-cover" />
+                </li>
+              );
+            }
+            const tone = MOSAIC_TONES[i.tone] ?? MOSAIC_TONES.tint;
+            return (
+              <li key={n} className="flex min-h-64 flex-col gap-4 rounded-3xl p-7" style={{ backgroundColor: tone.bg, color: tone.fg }}>
+                {i.title && <h3 className="text-2xl font-semibold leading-tight">{i.title}</h3>}
+                {i.text && <p className="leading-relaxed opacity-80">{i.text}</p>}
+              </li>
+            );
+          })}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
 function ServicesList({ block, urls }: { block: PageBlock; urls: Urls }) {
   const c = block.config;
   const items = configList(c).filter((i) => i.title || i.text || i.image_path);
@@ -1536,6 +1578,7 @@ export function BlockView({ block, urls, news, preview }: { block: PageBlock; ur
     case "insurance": return <Insurance block={block} urls={urls} />;
     case "services": return <Services block={block} />;
     case "services_list": return <ServicesList block={block} urls={urls} />;
+    case "mosaic": return <Mosaic block={block} urls={urls} />;
     case "settings": return <CareSettings block={block} />;
     case "ages": return <Ages block={block} />;
     case "image_text":

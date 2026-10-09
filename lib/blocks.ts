@@ -787,6 +787,31 @@ export const BLOCK_TYPES = [
     },
   },
   {
+    type: "mosaic",
+    group: "services",
+    label: "Photo & text mosaic",
+    hint: "A grid of square tiles, mixing photos with colored cards of text, like building blocks",
+    fields: [
+      { key: "heading", label: "Heading", kind: "text", placeholder: "Key components of ABA therapy" },
+      { key: "subhead", label: "Subheading", kind: "text" },
+      { key: "items", label: "Tiles", kind: "list", itemLabel: "tile", max: 12, hint: "Alternate photo tiles and text tiles for the best look. A tile with a photo shows only the photo.", fields: [{ key: "tone", label: "Card color (text tiles)", kind: "select", options: [{ value: "tint", label: "Theme tint" }, { value: "theme", label: "Theme color" }, { value: "soft", label: "Soft tint" }, { value: "dark", label: "Dark" }] }, { key: "title", label: "Title", kind: "text", placeholder: "Individualized approach" }, { key: "text", label: "Text", kind: "textarea" }, { key: "image", label: "Photo (instead of text)", kind: "image" }] },
+    ],
+    defaults: {
+      heading: "Key components of ABA therapy",
+      subhead: "Support built around your child and your family.",
+      items: [
+        { image_path: null },
+        { tone: "tint", title: "Individualized approach", text: "Every plan is built around your child's strengths, needs and goals." },
+        { image_path: null },
+        { tone: "soft", title: "Data-driven analysis", text: "We track progress continuously and adjust the plan as your child grows." },
+        { tone: "theme", title: "Skill development", text: "Communication, social interaction, self-care and daily living skills." },
+        { image_path: null },
+        { tone: "dark", title: "Family-centered plans", text: "Parents are part of the team, with coaching that carries into daily routines." },
+        { image_path: null },
+      ],
+    },
+  },
+  {
     type: "services_list",
     group: "services",
     label: "Services with photos",
@@ -1017,7 +1042,7 @@ export function blockSummary(type: string, c: BlockConfig) {
   if (type === "approach" || type === "first_day") return configText(c, "heading");
   if (type === "faq") return configList(c).map((i) => i.question).filter(Boolean).join(" · ");
   if (type === "availability") return configText(c, "message") || AVAILABILITY[configText(c, "status") as keyof typeof AVAILABILITY]?.text || "";
-  if (["services", "services_list", "settings", "ages", "values", "steps", "team", "positions", "locations", "resources", "workshops", "glossary", "compliance", "crisis", "promises", "roles", "funding", "timeline", "downloads"].includes(type)) {
+  if (["services", "services_list", "mosaic", "settings", "ages", "values", "steps", "team", "positions", "locations", "resources", "workshops", "glossary", "compliance", "crisis", "promises", "roles", "funding", "timeline", "downloads"].includes(type)) {
     return configList(c).map((i) => i.title || i.name || i.label || i.term || i.text).filter(Boolean).join(" · ");
   }
   return configText(c, "headline") || configText(c, "heading");

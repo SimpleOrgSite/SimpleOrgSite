@@ -36,6 +36,7 @@ const SAMPLES: Record<string, BlockConfig> = {
       { title: "School-age therapy", text: "We work alongside teachers and families so progress shows up in the classroom too.", image_path: "sample:2", link: "", link_label: "Learn more" },
     ],
   },
+  mosaic: { items: [{ image_path: "sample:1" }, { tone: "tint", title: "Individualized approach", text: "Every plan is built around your child's strengths, needs and goals." }, { image_path: "sample:2" }, { tone: "soft", title: "Data-driven analysis", text: "We track progress continuously and adjust the plan as your child grows." }, { tone: "theme", title: "Skill development", text: "Communication, social interaction, self-care and daily living skills." }, { image_path: "sample:3" }, { tone: "dark", title: "Family-centered plans", text: "Parents are part of the team, with coaching that carries into daily routines." }, { image_path: "sample:1" }] },
   team: {
     items: [
       { name: "Jordan Lee", role: "BCBA, Clinical Director", bio: "Jordan has spent over a decade helping children and families find their voice.", photo_path: "sample:1" },
